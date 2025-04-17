@@ -54,6 +54,13 @@ class CategoryResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('color')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('items_count')
+                    ->label('Items')
+                    ->counts('items')
+                    ->url(fn(Category $record): string => route('categories.items', $record))
+                    ->badge()
+                    ->color('success')
+                    ->tooltip('Click to view all items in this category'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
