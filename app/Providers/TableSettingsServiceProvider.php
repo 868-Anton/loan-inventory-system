@@ -36,9 +36,9 @@ class TableSettingsServiceProvider extends ServiceProvider
     {
         Table::configureUsing(function (Table $table): void {
             // Enable column toggling for all tables by default
-            $table->toggleColumnsTriggerAction()
-                ->iconButton()
-                ->tooltip('Toggle columns');
+            $table->toggleColumnsTriggerAction(
+                fn($action) => $action->iconButton()->tooltip('Toggle columns')
+            );
 
             // Set default filters layout
             $table->filtersLayout(FiltersLayout::AboveContent);

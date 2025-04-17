@@ -100,7 +100,6 @@ class LoanResource extends Resource
                         Forms\Components\Section::make('Borrowed Items')
                             ->schema([
                                 Forms\Components\Repeater::make('items')
-                                    ->relationship('items')
                                     ->label('Borrowed Items')
                                     ->schema([
                                         Forms\Components\Select::make('item_id')
@@ -142,9 +141,6 @@ class LoanResource extends Resource
                                                             ->body("This item is already borrowed. Adding it may cause inventory inconsistencies.")
                                                             ->persistent()
                                                             ->send();
-
-                                                        // You could uncomment this to prevent selection completely
-                                                        // $set('item_id', null);
                                                     }
                                                 }
                                             }),
