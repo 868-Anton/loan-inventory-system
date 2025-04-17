@@ -29,6 +29,9 @@
                 <a href="{{ url()->previous() }}" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
                     &larr; Back
                 </a>
+                <a href="{{ route('filament.admin.resources.categories.index') }}" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded">
+                    Back to Categories
+                </a>
             </div>
         </div>
 
