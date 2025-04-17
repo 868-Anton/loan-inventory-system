@@ -12,7 +12,11 @@ class Kernel extends ConsoleKernel
    */
   protected function schedule(Schedule $schedule): void
   {
-    // $schedule->command('inspire')->hourly();
+    // Daily sync of item statuses to fix any inconsistencies
+    $schedule->command('items:sync-status')->daily();
+
+    // Run the database validation check daily
+    $schedule->command('db:check')->daily();
   }
 
   /**

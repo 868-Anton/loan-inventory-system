@@ -46,22 +46,25 @@ class EditLoan extends EditRecord
 
                     if ($itemModel) {
                         // Check if item is already borrowed by another loan
-                        if (
-                            $itemModel->status === 'borrowed' &&
-                            $itemModel->loans()->where('loans.id', '!=', $record->id)
+                        $borrowedByOtherLoan = $itemModel->status === 'borrowed' &&
+                            $itemModel->loans()
+                            ->where('loans.id', '!=', $record->id)
                             ->whereIn('loans.status', ['active', 'pending', 'overdue'])
-                            ->exists()
-                        ) {
+                            ->exists();
 
+                        if ($borrowedByOtherLoan) {
                             \Filament\Notifications\Notification::make()
                                 ->warning()
                                 ->title('Warning')
                                 ->body("Item '{$itemModel->name}' appears to be borrowed by another loan.")
+                                ->persistent()
                                 ->send();
                         }
 
-                        // Update the item status to borrowed
-                        $itemModel->update(['status' => 'borrowed']);
+                        // Always update the item status to borrowed when it's part of an active loan
+                        if (in_array($record->status, ['active', 'pending', 'overdue'])) {
+                            $itemModel->update(['status' => 'borrowed']);
+                        }
 
                         // Attach to the loan with pivot data
                         $record->items()->attach($itemModel->id, [

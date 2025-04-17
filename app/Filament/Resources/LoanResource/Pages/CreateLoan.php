@@ -27,19 +27,25 @@ class CreateLoan extends CreateRecord
                 $itemModel = \App\Models\Item::find($item['item_id']);
 
                 if ($itemModel) {
-                    // Check if item is already borrowed
-                    if ($itemModel->status === 'borrowed') {
-                        // You might want to handle this case differently
-                        // For now, we'll proceed but you could add a notification or validation
+                    // Check if item is already borrowed by another loan
+                    $borrowedByOtherLoan = $itemModel->status === 'borrowed' &&
+                        $itemModel->loans()
+                        ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+                        ->exists();
+
+                    if ($borrowedByOtherLoan) {
                         \Filament\Notifications\Notification::make()
                             ->warning()
                             ->title('Warning')
-                            ->body("Item '{$itemModel->name}' is already marked as borrowed.")
+                            ->body("Item '{$itemModel->name}' appears to be borrowed by another loan.")
+                            ->persistent()
                             ->send();
                     }
 
-                    // Update the item status to borrowed
-                    $itemModel->update(['status' => 'borrowed']);
+                    // Always update the item status to borrowed when it's part of an active loan
+                    if (in_array($record->status, ['active', 'pending', 'overdue'])) {
+                        $itemModel->update(['status' => 'borrowed']);
+                    }
 
                     // Attach to the loan with pivot data
                     $record->items()->attach($itemModel->id, [

@@ -126,18 +126,20 @@ class LoanResource extends Resource
                                             ->preload()
                                             ->required()
                                             ->live()
-                                            ->afterStateUpdated(function (Forms\Set $set, $state) {
-                                                $set('quantity', 1);
+                                            ->afterStateUpdated(function (callable $set, $state) {
+                                                if ($state) {
+                                                    $item = Item::find($state);
+                                                    if ($item && $item->status === 'borrowed') {
+                                                        \Filament\Notifications\Notification::make()
+                                                            ->warning()
+                                                            ->title('Warning')
+                                                            ->body("This item is already borrowed. Adding it may cause inventory inconsistencies.")
+                                                            ->persistent()
+                                                            ->send();
 
-                                                // Show warning if borrowed item is selected
-                                                $item = Item::find($state);
-                                                if ($item && $item->status === 'borrowed') {
-                                                    \Filament\Notifications\Notification::make()
-                                                        ->warning()
-                                                        ->title('Item Already Borrowed')
-                                                        ->body("This item is currently borrowed. Adding it to this loan may cause inventory conflicts.")
-                                                        ->persistent()
-                                                        ->send();
+                                                        // You could uncomment this to prevent selection completely
+                                                        // $set('item_id', null);
+                                                    }
                                                 }
                                             }),
 

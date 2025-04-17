@@ -11,9 +11,13 @@ class LoanObserver
      */
     public function created(Loan $loan): void
     {
-        // If loan is active, update all attached items to borrowed status
-        if ($loan->status === 'active') {
-            $this->updateItemsStatus($loan);
+        // Update all attached items to borrowed status
+        // regardless of loan status to ensure consistency
+        $this->updateItemsStatus($loan);
+
+        // If status is not pending or active, set it back to appropriate status
+        if (!in_array($loan->status, ['pending', 'active', 'overdue'])) {
+            $this->handleInactiveStatus($loan);
         }
     }
 
@@ -44,8 +48,15 @@ class LoanObserver
             }
         }
         // If the loan status changed to active, update all items to borrowed
-        elseif ($loan->status === 'active' && $loan->getOriginal('status') !== 'active') {
+        elseif (
+            in_array($loan->status, ['active', 'pending', 'overdue']) &&
+            !in_array($loan->getOriginal('status'), ['active', 'pending', 'overdue'])
+        ) {
             $this->updateItemsStatus($loan);
+        }
+        // If the loan status changed to canceled, update items as needed
+        elseif ($loan->status === 'canceled' && $loan->getOriginal('status') !== 'canceled') {
+            $this->handleInactiveStatus($loan);
         }
     }
 
@@ -60,11 +71,31 @@ class LoanObserver
     }
 
     /**
+     * Handle when a loan is set to an inactive status like canceled
+     */
+    private function handleInactiveStatus(Loan $loan): void
+    {
+        // For each item, check if it's in any other active loans
+        // If not, set it back to 'available'
+        foreach ($loan->items as $item) {
+            $stillOnLoan = $item->loans()
+                ->where('loans.id', '!=', $loan->id)
+                ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+                ->exists();
+
+            if (!$stillOnLoan) {
+                $item->update(['status' => 'available']);
+            }
+        }
+    }
+
+    /**
      * Handle the Loan "deleted" event.
      */
     public function deleted(Loan $loan): void
     {
-        //
+        // When a loan is deleted, check if items should be set back to available
+        $this->handleInactiveStatus($loan);
     }
 
     /**
@@ -72,7 +103,10 @@ class LoanObserver
      */
     public function restored(Loan $loan): void
     {
-        //
+        // If loan is active, update all attached items to borrowed status
+        if (in_array($loan->status, ['active', 'pending', 'overdue'])) {
+            $this->updateItemsStatus($loan);
+        }
     }
 
     /**
@@ -80,6 +114,7 @@ class LoanObserver
      */
     public function forceDeleted(Loan $loan): void
     {
-        //
+        // Same as soft delete
+        $this->handleInactiveStatus($loan);
     }
 }
