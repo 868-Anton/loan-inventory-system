@@ -55,12 +55,12 @@ class CategoryResource extends Resource
                 Tables\Columns\TextColumn::make('color')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label('All Items')
                     ->counts('items')
                     ->url(fn(Category $record): string => route('categories.items', $record))
                     ->badge()
                     ->color('success')
-                    ->tooltip('Click to view all items in this category'),
+                    ->tooltip('Click to view all items in this category, regardless of status'),
                 Tables\Columns\TextColumn::make('borrowed_items_count')
                     ->label('Borrowed Items')
                     ->state(function (Category $record): int {
