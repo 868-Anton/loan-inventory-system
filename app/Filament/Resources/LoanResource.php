@@ -105,12 +105,41 @@ class LoanResource extends Resource
                                     ->schema([
                                         Forms\Components\Select::make('item_id')
                                             ->label('Item')
-                                            ->options(fn() => Item::where('status', 'available')->pluck('name', 'id'))
+                                            ->options(function () {
+                                                // Get all items including already borrowed ones
+                                                $items = Item::all();
+
+                                                // Format options differently for borrowed vs available
+                                                return $items->mapWithKeys(function ($item) {
+                                                    $status = $item->status;
+                                                    $label = $item->name;
+
+                                                    // Add visual indicator if borrowed
+                                                    if ($status === 'borrowed') {
+                                                        $label .= ' (⚠️ Already Borrowed)';
+                                                    }
+
+                                                    return [$item->id => $label];
+                                                });
+                                            })
                                             ->searchable()
                                             ->preload()
                                             ->required()
                                             ->live()
-                                            ->afterStateUpdated(fn(Forms\Set $set) => $set('quantity', 1)),
+                                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                                $set('quantity', 1);
+
+                                                // Show warning if borrowed item is selected
+                                                $item = Item::find($state);
+                                                if ($item && $item->status === 'borrowed') {
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->warning()
+                                                        ->title('Item Already Borrowed')
+                                                        ->body("This item is currently borrowed. Adding it to this loan may cause inventory conflicts.")
+                                                        ->persistent()
+                                                        ->send();
+                                                }
+                                            }),
 
                                         Forms\Components\TextInput::make('quantity')
                                             ->numeric()
@@ -260,6 +289,28 @@ class LoanResource extends Resource
                     ->openUrlInNewTab()
                     ->icon('heroicon-o-printer')
                     ->visible(fn(Loan $record): bool => $record->voucher_path !== null),
+                Tables\Actions\Action::make('return')
+                    ->label('Return Loan')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('success')
+                    ->form([
+                        Forms\Components\Textarea::make('notes')
+                            ->label('Return Notes')
+                            ->placeholder('Condition of returned items, missing parts, damage, etc.')
+                    ])
+                    ->action(function (Loan $record, array $data): void {
+                        $record->markAsReturned($data['notes'] ?? null);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Loan Returned')
+                            ->body('All items have been marked as returned.')
+                            ->send();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Return Loan')
+                    ->modalDescription('Mark this loan as returned? This will update the status of all borrowed items.')
+                    ->visible(fn(Loan $record): bool => $record->status !== 'returned' && $record->status !== 'canceled'),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

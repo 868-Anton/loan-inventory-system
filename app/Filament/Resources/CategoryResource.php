@@ -61,6 +61,27 @@ class CategoryResource extends Resource
                     ->badge()
                     ->color('success')
                     ->tooltip('Click to view all items in this category'),
+                Tables\Columns\TextColumn::make('borrowed_items_count')
+                    ->label('Borrowed Items')
+                    ->state(function (Category $record): int {
+                        // Count items in this category that are either:
+                        // 1. Directly marked as "borrowed" in the items table
+                        // 2. Currently part of an active loan
+                        return $record->items()
+                            ->where(function ($query) {
+                                $query->where('status', 'borrowed')
+                                    ->orWhereHas('loans', function ($loanQuery) {
+                                        $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                                            ->whereRaw('loan_items.status = "loaned"');
+                                    });
+                            })
+                            ->count();
+                    })
+                    ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'borrowed']))
+                    ->badge()
+                    ->color('danger')
+                    ->alignCenter()
+                    ->tooltip('Click to view borrowed items in this category'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

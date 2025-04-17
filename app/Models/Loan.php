@@ -206,4 +206,46 @@ class Loan extends Model
 
         return Storage::url($this->voucher_path);
     }
+
+    /**
+     * Mark a loan as returned and update all associated items
+     * 
+     * @param string|null $notes Additional notes about the return
+     * @return bool Whether the return was processed successfully
+     */
+    public function markAsReturned(?string $notes = null): bool
+    {
+        if ($this->status === 'returned') {
+            return false; // Already returned
+        }
+
+        // Update loan status and return date
+        $this->return_date = now();
+        $this->status = 'returned';
+
+        if ($notes) {
+            $this->notes = $this->notes ? $this->notes . "\n\nReturn notes: " . $notes : "Return notes: " . $notes;
+        }
+
+        // Update all associated items statuses in the pivot table
+        $this->items()->updateExistingPivot(
+            $this->items->pluck('id')->toArray(),
+            ['status' => 'returned']
+        );
+
+        // For each item, check if it's in any other active loans
+        // If not, set it back to 'available'
+        foreach ($this->items as $item) {
+            $stillOnLoan = $item->loans()
+                ->where('loans.id', '!=', $this->id)
+                ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+                ->exists();
+
+            if (!$stillOnLoan) {
+                $item->update(['status' => 'available']);
+            }
+        }
+
+        return $this->save();
+    }
 }

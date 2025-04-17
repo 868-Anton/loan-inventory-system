@@ -23,12 +23,32 @@ class CreateLoan extends CreateRecord
         // Add items with pivot data
         foreach ($items as $item) {
             if (!empty($item['item_id'])) {
-                $record->items()->attach($item['item_id'], [
-                    'quantity' => $item['quantity'] ?? 1,
-                    'serial_numbers' => !empty($item['serial_numbers']) ? json_encode($item['serial_numbers']) : null,
-                    'condition_before' => $item['condition_before'] ?? null,
-                    'status' => 'loaned',
-                ]);
+                // Get the item model
+                $itemModel = \App\Models\Item::find($item['item_id']);
+
+                if ($itemModel) {
+                    // Check if item is already borrowed
+                    if ($itemModel->status === 'borrowed') {
+                        // You might want to handle this case differently
+                        // For now, we'll proceed but you could add a notification or validation
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Warning')
+                            ->body("Item '{$itemModel->name}' is already marked as borrowed.")
+                            ->send();
+                    }
+
+                    // Update the item status to borrowed
+                    $itemModel->update(['status' => 'borrowed']);
+
+                    // Attach to the loan with pivot data
+                    $record->items()->attach($itemModel->id, [
+                        'quantity' => $item['quantity'] ?? 1,
+                        'serial_numbers' => !empty($item['serial_numbers']) ? json_encode($item['serial_numbers']) : null,
+                        'condition_before' => $item['condition_before'] ?? null,
+                        'status' => 'loaned',
+                    ]);
+                }
             }
         }
 

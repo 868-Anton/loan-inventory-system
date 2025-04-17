@@ -10,11 +10,26 @@
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">
-                Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
+                @if($filter === 'borrowed')
+                    <span class="text-red-600">Borrowed</span> Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
+                @else
+                    Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
+                @endif
             </h1>
-            <a href="{{ url()->previous() }}" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
-                &larr; Back
-            </a>
+            <div class="flex gap-2">
+                @if($filter === 'borrowed')
+                    <a href="{{ route('categories.items', $category) }}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded">
+                        Show All Items
+                    </a>
+                @else
+                    <a href="{{ route('categories.items', ['category' => $category, 'filter' => 'borrowed']) }}" class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded">
+                        Show Borrowed Only
+                    </a>
+                @endif
+                <a href="{{ url()->previous() }}" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
+                    &larr; Back
+                </a>
+            </div>
         </div>
 
         @if($category->description)
@@ -70,7 +85,7 @@
                     </tbody>
                 </table>
                 <div class="px-6 py-4">
-                    {{ $items->links() }}
+                    {{ $items->appends(['filter' => $filter])->links() }}
                 </div>
             @else
                 <div class="p-6 text-center text-gray-500">
