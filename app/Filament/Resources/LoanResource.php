@@ -106,8 +106,14 @@ class LoanResource extends Resource
                                         Forms\Components\Select::make('item_id')
                                             ->label('Item')
                                             ->options(function () {
-                                                // Get all items including already borrowed ones
-                                                $items = Item::all();
+                                                // Debug message to see if this callback is executed
+                                                \Illuminate\Support\Facades\Log::info('Loading item options for select field');
+
+                                                // Get all items from the database
+                                                $items = \App\Models\Item::all();
+
+                                                // Log the items count for debugging
+                                                \Illuminate\Support\Facades\Log::info('Found ' . $items->count() . ' items to populate select field');
 
                                                 // Format options differently for borrowed vs available
                                                 return $items->mapWithKeys(function ($item) {
@@ -180,12 +186,13 @@ class LoanResource extends Resource
                                         fn(array $state): ?string =>
                                         Item::find($state['item_id'])?->name
                                             ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['quantity'] ?? 1) . ')'
-                                            : null
+                                            : 'New Item'
                                     )
                                     ->addActionLabel('Add Item')
-                                    ->defaultItems(0)
+                                    ->defaultItems(1)
                                     ->reorderableWithButtons()
-                                    ->collapsible(),
+                                    ->collapsible(false)
+                                    ->minItems(1),
                             ]),
                     ])
                     ->columnSpanFull(),

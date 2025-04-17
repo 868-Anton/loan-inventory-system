@@ -97,6 +97,12 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <a href="#" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                    @if($item->status === 'available')
+                                        <a href="{{ route('loan.item', $item) }}" 
+                                           class="ml-3 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded-md">
+                                            Loan
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
