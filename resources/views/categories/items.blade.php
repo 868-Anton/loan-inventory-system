@@ -12,6 +12,8 @@
             <h1 class="text-2xl font-bold text-gray-800">
                 @if($filter === 'borrowed')
                     <span class="text-red-600">Borrowed</span> Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
+                @elseif($filter === 'available')
+                    <span class="text-orange-600">Available</span> Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
                 @else
                     Items in Category: <span class="text-indigo-600">{{ $category->name }}</span>
                 @endif
@@ -21,9 +23,22 @@
                     <a href="{{ route('categories.items', $category) }}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded">
                         Show All Items
                     </a>
+                    <a href="{{ route('categories.items', ['category' => $category, 'filter' => 'available']) }}" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2 rounded">
+                        Show Available Only
+                    </a>
+                @elseif($filter === 'available')
+                    <a href="{{ route('categories.items', $category) }}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded">
+                        Show All Items
+                    </a>
+                    <a href="{{ route('categories.items', ['category' => $category, 'filter' => 'borrowed']) }}" class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded">
+                        Show Borrowed Only
+                    </a>
                 @else
                     <a href="{{ route('categories.items', ['category' => $category, 'filter' => 'borrowed']) }}" class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded">
                         Show Borrowed Only
+                    </a>
+                    <a href="{{ route('categories.items', ['category' => $category, 'filter' => 'available']) }}" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2 rounded">
+                        Show Available Only
                     </a>
                 @endif
                 <a href="{{ url()->previous() }}" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">

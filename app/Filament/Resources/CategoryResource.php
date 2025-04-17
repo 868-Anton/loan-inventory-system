@@ -61,6 +61,18 @@ class CategoryResource extends Resource
                     ->badge()
                     ->color('success')
                     ->tooltip('Click to view all items in this category, regardless of status'),
+                Tables\Columns\TextColumn::make('available_items_count')
+                    ->label('Available Items')
+                    ->state(function (Category $record): int {
+                        return $record->items()
+                            ->where('status', 'available')
+                            ->count();
+                    })
+                    ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'available']))
+                    ->badge()
+                    ->color('warning') // Orange
+                    ->alignCenter()
+                    ->tooltip('Click to view available items in this category'),
                 Tables\Columns\TextColumn::make('borrowed_items_count')
                     ->label('Borrowed Items')
                     ->state(function (Category $record): int {

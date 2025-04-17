@@ -31,6 +31,9 @@ class CategoryItemsController extends Controller
                             ->whereRaw('loan_items.status = "loaned"');
                     });
             });
+        } elseif ($filter === 'available') {
+            // Filter only available items
+            $query->where('status', 'available');
         }
 
         // Get paginated results with optimized query
