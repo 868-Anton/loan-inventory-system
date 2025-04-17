@@ -111,13 +111,19 @@ class CategoryResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->button()
+                    ->iconButton()
+                    ->label('')
+                    ->modalWidth('lg'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            // Add row click behavior
+            ->recordUrl(fn(Category $record): string => route('categories.items', $record));
     }
 
     public static function getRelations(): array

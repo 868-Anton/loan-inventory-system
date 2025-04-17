@@ -1,0 +1,26 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+/* Custom styles for category table rows */
+.fi-ta-row {
+    @apply transition-colors duration-200 ease-in-out cursor-pointer;
+}
+
+.fi-ta-row:hover:not(.fi-ta-header-row):not(:has(.fi-ta-actions button:hover)) {
+    @apply bg-yellow-400/20;
+}
+
+/* Ensure text remains readable on hover */
+.fi-ta-row:hover .fi-ta-col {
+    @apply text-gray-900;
+}
+
+/* Keep badges visible on hover */
+.fi-ta-row:hover .fi-badge {
+    @apply opacity-100;
+}
+
+/* Add subtle border radius to rows */
+.fi-ta-row:not(.fi-ta-header-row) {
+    @apply rounded-lg;
+} 
