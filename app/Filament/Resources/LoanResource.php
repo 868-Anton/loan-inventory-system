@@ -1,0 +1,287 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\LoanResource\Pages;
+use App\Filament\Resources\LoanResource\RelationManagers;
+use App\Models\Item;
+use App\Models\Loan;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Carbon\Carbon;
+use Closure;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Repeater;
+
+class LoanResource extends Resource
+{
+    protected static ?string $model = Loan::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make('Loan Information')
+                            ->schema([
+                                Forms\Components\TextInput::make('loan_number')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\Select::make('user_id')
+                                    ->relationship('user', 'name')
+                                    ->required(),
+                                Forms\Components\Select::make('department_id')
+                                    ->relationship('department', 'name'),
+                                Forms\Components\DatePicker::make('loan_date')
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        // Only set the due date if loan_date has a value and due_date is empty
+                                        if ($state && !$get('due_date')) {
+                                            $set('due_date', Carbon::parse($state)->addMonth()->format('Y-m-d'));
+                                        }
+                                    }),
+                                Forms\Components\DatePicker::make('due_date')
+                                    ->required()
+                                    ->helperText('Defaults to 1 month after loan date if not specified'),
+                                Forms\Components\DatePicker::make('return_date'),
+                                Forms\Components\Select::make('status')
+                                    ->options([
+                                        'pending' => 'Pending',
+                                        'active' => 'Active',
+                                        'overdue' => 'Overdue',
+                                        'returned' => 'Returned',
+                                        'canceled' => 'Canceled',
+                                    ])
+                                    ->default('pending')
+                                    ->required(),
+                                Forms\Components\Textarea::make('notes')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2),
+
+                        Forms\Components\Section::make('Borrower Information')
+                            ->schema([
+                                Forms\Components\Toggle::make('is_guest')
+                                    ->label('Guest Borrower')
+                                    ->live()
+                                    ->helperText('Toggle on if the borrower is not a registered user'),
+                                Forms\Components\TextInput::make('guest_name')
+                                    ->label('Name')
+                                    ->maxLength(255)
+                                    ->required(fn(Forms\Get $get): bool => $get('is_guest'))
+                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
+                                Forms\Components\TextInput::make('guest_email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->maxLength(255)
+                                    ->required(fn(Forms\Get $get): bool => $get('is_guest'))
+                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
+                                Forms\Components\TextInput::make('guest_phone')
+                                    ->label('Phone')
+                                    ->tel()
+                                    ->maxLength(255)
+                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
+                                Forms\Components\TextInput::make('guest_id')
+                                    ->label('ID Number')
+                                    ->maxLength(255)
+                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
+                            ])
+                            ->columns(2),
+
+                        Forms\Components\Section::make('Borrowed Items')
+                            ->schema([
+                                Forms\Components\Repeater::make('items')
+                                    ->relationship('items')
+                                    ->label('Borrowed Items')
+                                    ->schema([
+                                        Forms\Components\Select::make('item_id')
+                                            ->label('Item')
+                                            ->options(fn() => Item::where('status', 'available')->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->live()
+                                            ->afterStateUpdated(fn(Forms\Set $set) => $set('quantity', 1)),
+
+                                        Forms\Components\TextInput::make('quantity')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->maxValue(function (Forms\Get $get) {
+                                                $itemId = $get('item_id');
+                                                if (!$itemId) return 1;
+
+                                                $item = Item::find($itemId);
+                                                return $item ? $item->getAvailableQuantity() : 1;
+                                            })
+                                            ->helperText(function (Forms\Get $get) {
+                                                $itemId = $get('item_id');
+                                                if (!$itemId) return null;
+
+                                                $item = Item::find($itemId);
+                                                if (!$item) return null;
+
+                                                $available = $item->getAvailableQuantity();
+                                                return "Available: {$available}";
+                                            })
+                                            ->required(),
+
+                                        Forms\Components\TagsInput::make('serial_numbers')
+                                            ->placeholder('Enter serial numbers')
+                                            ->helperText('Add serial numbers one by one by pressing Enter after each')
+                                            ->nullable(),
+
+                                        Forms\Components\Textarea::make('condition_before')
+                                            ->placeholder('Item condition before loan')
+                                            ->nullable(),
+                                    ])
+                                    ->columns(2)
+                                    ->itemLabel(
+                                        fn(array $state): ?string =>
+                                        Item::find($state['item_id'])?->name
+                                            ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['quantity'] ?? 1) . ')'
+                                            : null
+                                    )
+                                    ->addActionLabel('Add Item')
+                                    ->defaultItems(0)
+                                    ->reorderableWithButtons()
+                                    ->collapsible(),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make('Documentation')
+                            ->schema([
+                                Forms\Components\FileUpload::make('signature')
+                                    ->image()
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('3:1')
+                                    ->directory('signatures')
+                                    ->maxSize(2048)
+                                    ->helperText('Upload borrower signature (optional)'),
+                                Forms\Components\TextInput::make('voucher_path')
+                                    ->label('Voucher')
+                                    ->readOnly()
+                                    ->helperText('Voucher will be generated automatically after saving'),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('loan_number')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('borrower')
+                    ->label('Borrower')
+                    ->getStateUsing(fn(Loan $record): string => $record->getBorrowerName())
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query
+                            ->where(function (Builder $query) use ($search): Builder {
+                                return $query
+                                    ->where('guest_name', 'like', "%{$search}%")
+                                    ->orWhereHas(
+                                        'user',
+                                        fn(Builder $q) =>
+                                        $q->where('name', 'like', "%{$search}%")
+                                    );
+                            });
+                    }),
+                Tables\Columns\TextColumn::make('department.name')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('loan_date')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('due_date')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('return_date')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'pending' => 'gray',
+                        'active' => 'success',
+                        'overdue' => 'danger',
+                        'returned' => 'info',
+                        'canceled' => 'warning',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('items_count')
+                    ->label('Items')
+                    ->counts('items'),
+                Tables\Columns\IconColumn::make('is_guest')
+                    ->label('Guest')
+                    ->boolean()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'active' => 'Active',
+                        'overdue' => 'Overdue',
+                        'returned' => 'Returned',
+                        'canceled' => 'Canceled',
+                    ]),
+                Tables\Filters\Filter::make('overdue')
+                    ->query(fn(Builder $query): Builder => $query->whereNull('return_date')->whereDate('due_date', '<', now())),
+                Tables\Filters\Filter::make('returned')
+                    ->query(fn(Builder $query): Builder => $query->whereNotNull('return_date')),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('print_voucher')
+                    ->label('Print Voucher')
+                    ->url(fn(Loan $record): ?string => route('loans.voucher', $record))
+                    ->openUrlInNewTab()
+                    ->icon('heroicon-o-printer')
+                    ->visible(fn(Loan $record): bool => $record->voucher_path !== null),
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ItemsRelationManager::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListLoans::route('/'),
+            'create' => Pages\CreateLoan::route('/create'),
+            'edit' => Pages\EditLoan::route('/{record}/edit'),
+        ];
+    }
+}

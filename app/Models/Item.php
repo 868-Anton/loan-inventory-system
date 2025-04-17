@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
+
+class Item extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'name',
+        'description',
+        'thumbnail',
+        'serial_number',
+        'asset_tag',
+        'purchase_date',
+        'purchase_cost',
+        'warranty_expiry',
+        'status',
+        'total_quantity',
+        'category_id',
+        'custom_attributes',
+    ];
+
+    protected $casts = [
+        'purchase_date' => 'date',
+        'warranty_expiry' => 'date',
+        'purchase_cost' => 'decimal:2',
+        'custom_attributes' => 'array',
+    ];
+
+    /**
+     * Get the category that owns the item.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Get the loans for the item.
+     */
+    public function loans(): BelongsToMany
+    {
+        return $this->belongsToMany(Loan::class, 'loan_items')
+            ->withPivot(['quantity', 'serial_numbers', 'condition_before', 'condition_after', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Scope a query to only include available items.
+     */
+    public function scopeAvailable(Builder $query): Builder
+    {
+        return $query->where('status', 'available');
+    }
+
+    /**
+     * Check if the item is available for loan.
+     */
+    public function isAvailable(): bool
+    {
+        return $this->status === 'available';
+    }
+
+    /**
+     * Get the total quantity of the item available for loan.
+     * This can be overridden in child classes for different inventory systems.
+     * 
+     * @return int
+     */
+    public function getAvailableQuantity(): int
+    {
+        if (!$this->isAvailable()) {
+            return 0;
+        }
+
+        // Calculate the total quantity borrowed of this item in active loans
+        $borrowedQuantity = $this->loans()
+            ->whereIn('loans.status', ['pending', 'active', 'overdue'])
+            ->sum('loan_items.quantity');
+
+        // Assuming there's a total_quantity field or method
+        // If not, override in a custom implementation or set a default
+        $totalQuantity = $this->total_quantity ?? 1;
+
+        return max(0, $totalQuantity - $borrowedQuantity);
+    }
+}
