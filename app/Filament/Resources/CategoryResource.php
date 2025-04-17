@@ -69,7 +69,7 @@ class CategoryResource extends Resource
                     ->label('Available Items')
                     ->state(function (Category $record): int {
                         return $record->items()
-                            ->where('status', 'available')
+                            ->whereRaw('LOWER(status) = ?', ['available'])
                             ->count();
                     })
                     ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'available']))
@@ -85,10 +85,10 @@ class CategoryResource extends Resource
                         // 2. Currently part of an active loan
                         return $record->items()
                             ->where(function ($query) {
-                                $query->where('status', 'borrowed')
+                                $query->whereRaw('LOWER(status) = ?', ['borrowed'])
                                     ->orWhereHas('loans', function ($loanQuery) {
                                         $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
-                                            ->whereRaw('loan_items.status = "loaned"');
+                                            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
                                     });
                             })
                             ->count();

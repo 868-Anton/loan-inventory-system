@@ -340,4 +340,54 @@ class LoanResource extends Resource
             'edit' => Pages\EditLoan::route('/{record}/edit'),
         ];
     }
+
+    /**
+     * Handle after create hook
+     */
+    public static function afterCreate(array $data): void
+    {
+        // Get the created loan
+        $loan = static::getModel()::latest('id')->first();
+
+        // If there are items attached to this loan and the loan is active or pending
+        if (isset($data['items']) && in_array($loan->status, ['active', 'pending', 'overdue'])) {
+            foreach ($data['items'] as $itemData) {
+                // Update item status to borrowed
+                $item = \App\Models\Item::find($itemData['item_id']);
+                if ($item) {
+                    $item->status = 'borrowed';
+                    $item->save();
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle after update hook
+     */
+    public static function afterUpdate($record, array $data): void
+    {
+        // If the loan is completed/returned
+        if ($record->status === 'returned') {
+            foreach ($record->items as $item) {
+                // Check if the item is in any other active loans
+                $stillOnLoan = $item->loans()
+                    ->where('loans.id', '!=', $record->id)
+                    ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+                    ->exists();
+
+                // If not in any other loans, set back to available
+                if (!$stillOnLoan) {
+                    $item->status = 'available';
+                    $item->save();
+                }
+            }
+        } else if (in_array($record->status, ['active', 'pending', 'overdue'])) {
+            // If loan is active, make sure all items are marked as borrowed
+            foreach ($record->items as $item) {
+                $item->status = 'borrowed';
+                $item->save();
+            }
+        }
+    }
 }

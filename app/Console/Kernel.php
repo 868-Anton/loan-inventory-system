@@ -17,6 +17,9 @@ class Kernel extends ConsoleKernel
 
     // Run the database validation check daily
     $schedule->command('db:check')->daily();
+
+    // Run the item status normalization command daily to prevent inconsistencies
+    $schedule->command('items:normalize-status')->daily();
   }
 
   /**

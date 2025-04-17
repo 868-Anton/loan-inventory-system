@@ -92,4 +92,19 @@ class Item extends Model
 
         return max(0, $totalQuantity - $borrowedQuantity);
     }
+
+    /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($item) {
+            // Normalize status to lowercase before saving
+            if ($item->status) {
+                $item->status = strtolower($item->status);
+            }
+        });
+    }
 }

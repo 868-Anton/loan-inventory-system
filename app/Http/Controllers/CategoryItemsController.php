@@ -25,15 +25,15 @@ class CategoryItemsController extends Controller
         // Apply filter if specified
         if ($filter === 'borrowed') {
             $query->where(function ($query) {
-                $query->where('status', 'borrowed')
+                $query->whereRaw('LOWER(status) = ?', ['borrowed'])
                     ->orWhereHas('loans', function ($loanQuery) {
                         $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
-                            ->whereRaw('loan_items.status = "loaned"');
+                            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
                     });
             });
         } elseif ($filter === 'available') {
             // Filter only available items
-            $query->where('status', 'available');
+            $query->whereRaw('LOWER(status) = ?', ['available']);
         }
 
         // Get paginated results with optimized query
