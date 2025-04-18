@@ -14,8 +14,11 @@ Route::get('/loans/{loan}/voucher', function (App\Models\Loan $loan) {
 
 Route::get('/categories/{category}/items', [CategoryItemsController::class, 'show'])->name('categories.items');
 
-// RESTful route for showing item details
-Route::get('/items/{item}', [ItemsController::class, 'show'])->name('items.show');
+// Add item details modal view route
+Route::get('/items/{item}/view', [ItemsController::class, 'viewModal'])->name('items.view');
+
+// RESTful routes for Items resource
+Route::resource('items', ItemsController::class);
 
 // Add a new route to redirect to loan creation with prefilled item
 Route::get('/loan-item/{item}', function (App\Models\Item $item) {
