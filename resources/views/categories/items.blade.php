@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $category->name }} - Items</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ itemModal: false, modalContent: '' }">
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">
@@ -96,7 +98,12 @@
                                     {{ $item->total_quantity }} unit(s)
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="#" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                    <a 
+                                        href="{{ route('items.show', $item) }}"
+                                        class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-md transition-colors"
+                                    >
+                                        View
+                                    </a>
                                     @if($item->status === 'available')
                                         <a href="{{ route('loan.item', $item) }}" 
                                            class="ml-3 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded-md">
@@ -118,5 +125,69 @@
             @endif
         </div>
     </div>
+
+    <!-- Item Details Modal -->
+    <div
+        x-show="itemModal"
+        class="fixed inset-0 z-50 overflow-y-auto"
+        style="display: none;"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+        <!-- Modal Backdrop -->
+        <div
+            class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            @click="itemModal = false"
+        ></div>
+
+        <!-- Modal Content -->
+        <div class="flex items-center justify-center min-h-screen">
+            <div
+                class="relative bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                @click.outside="itemModal = false"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:enter-end="opacity-100 transform scale-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 transform scale-100"
+                x-transition:leave-end="opacity-0 transform scale-95"
+            >
+                <!-- Close Button -->
+                <button
+                    @click="itemModal = false"
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-500"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                <!-- Modal Body (will be filled dynamically) -->
+                <div x-html="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function viewItem(itemId) {
+            // Fetch item details
+            fetch(`/items/${itemId}/view`)
+                .then(response => response.json())
+                .then(data => {
+                    // Set modal content
+                    Alpine.store('modalData', data);
+                    document.querySelector('[x-data]').__x.$data.modalContent = data.html;
+                    document.querySelector('[x-data]').__x.$data.itemModal = true;
+                })
+                .catch(error => {
+                    console.error('Error fetching item details:', error);
+                    alert('Failed to load item details. Please try again.');
+                });
+        }
+    </script>
 </body>
 </html> 

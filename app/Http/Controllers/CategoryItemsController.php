@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Item;
 use Illuminate\Http\Request;
 
 class CategoryItemsController extends Controller
@@ -44,6 +45,36 @@ class CategoryItemsController extends Controller
             'category' => $category,
             'items' => $items,
             'filter' => $filter,
+        ]);
+    }
+
+    /**
+     * Display detailed information for a specific item.
+     *
+     * @param  \App\Models\Item  $item
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function viewItem(Item $item)
+    {
+        // Load relationships that might be needed for the view
+        $item->load(['category', 'loans' => function ($query) {
+            $query->whereIn('status', ['active', 'pending', 'overdue'])
+                ->with('user');
+        }]);
+
+        // Return item data as JSON
+        return response()->json([
+            'item' => $item,
+            'activeLoans' => $item->loans->map(function ($loan) {
+                return [
+                    'id' => $loan->id,
+                    'loan_number' => $loan->loan_number,
+                    'borrower' => $loan->getBorrowerName(),
+                    'status' => $loan->status,
+                    'due_date' => $loan->due_date ? $loan->due_date->format('Y-m-d') : null,
+                ];
+            }),
+            'html' => view('items.modal', compact('item'))->render()
         ]);
     }
 }
