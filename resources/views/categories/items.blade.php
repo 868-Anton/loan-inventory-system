@@ -105,13 +105,13 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        @if($item->isCurrentlyLoaned())
+                                        @if($item->isCurrentlyLoaned() || $item->status === 'borrowed')
                                             bg-yellow-100 text-yellow-800
                                         @else
                                             {{ $item->status === 'available' ? 'bg-green-100 text-green-800' : 
                                                ($item->status === 'under_repair' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') }}
                                         @endif">
-                                        @if($item->isCurrentlyLoaned())
+                                        @if($item->isCurrentlyLoaned() || $item->status === 'borrowed')
                                             Borrowed
                                         @else
                                             {{ ucfirst($item->status) }}
