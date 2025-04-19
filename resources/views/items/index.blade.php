@@ -129,10 +129,17 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        {{ $item->status === 'available' ? 'bg-green-100 text-green-800' : 
-                                           ($item->status === 'borrowed' ? 'bg-yellow-100 text-yellow-800' : 
-                                           ($item->status === 'under_repair' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800')) }}">
-                                        {{ ucfirst(str_replace('_', ' ', $item->status)) }}
+                                        @if($item->isCurrentlyLoaned())
+                                            bg-yellow-100 text-yellow-800
+                                        @else
+                                            {{ $item->status === 'available' ? 'bg-green-100 text-green-800' : 
+                                               ($item->status === 'under_repair' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') }}
+                                        @endif">
+                                        @if($item->isCurrentlyLoaned())
+                                            Borrowed
+                                        @else
+                                            {{ ucfirst(str_replace('_', ' ', $item->status)) }}
+                                        @endif
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -145,7 +152,7 @@
                                     >
                                         View
                                     </a>
-                                    @if($item->status === 'available')
+                                    @if(!$item->isCurrentlyLoaned() && $item->status === 'available')
                                         <a href="{{ route('loan.item', $item) }}" 
                                            class="item-row-action ml-3 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded-md">
                                             Loan

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Category extends Model
 {
@@ -47,5 +48,42 @@ class Category extends Model
     public function items(): HasMany
     {
         return $this->hasMany(Item::class);
+    }
+
+    /**
+     * Get the count of available items in this category.
+     * An item is considered available if:
+     * 1. Its status is 'available'
+     * 2. AND it's not currently part of any active loan
+     * 
+     * @return int
+     */
+    public function getAvailableItemsCount(): int
+    {
+        return $this->items()
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(status) = ?', ['available'])
+                    ->whereDoesntHave('loans', function ($loanQuery) {
+                        $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+                    });
+            })
+            ->count();
+    }
+
+    /**
+     * Get the count of borrowed items in this category.
+     * An item is considered borrowed if it has active loans in the loan_items pivot table.
+     * 
+     * @return int
+     */
+    public function getBorrowedItemsCount(): int
+    {
+        return $this->items()
+            ->whereHas('loans', function ($query) {
+                $query->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                    ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+            })
+            ->count();
     }
 }

@@ -25,16 +25,20 @@ class CategoryItemsController extends Controller
 
         // Apply filter if specified
         if ($filter === 'borrowed') {
+            // Filter items that have active loans in the loan_items pivot table
+            $query->whereHas('loans', function ($loanQuery) {
+                $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                    ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+            });
+        } elseif ($filter === 'available') {
+            // Filter only truly available items (status is available AND not in any active loan)
             $query->where(function ($query) {
-                $query->whereRaw('LOWER(status) = ?', ['borrowed'])
-                    ->orWhereHas('loans', function ($loanQuery) {
+                $query->whereRaw('LOWER(status) = ?', ['available'])
+                    ->whereDoesntHave('loans', function ($loanQuery) {
                         $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
                             ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
                     });
             });
-        } elseif ($filter === 'available') {
-            // Filter only available items
-            $query->whereRaw('LOWER(status) = ?', ['available']);
         }
 
         // Get paginated results with optimized query
