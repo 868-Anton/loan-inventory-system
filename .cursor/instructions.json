@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "title": "🌍 Global Project Rule – Loan Inventory System",
+      "content": "When working on the Loan Inventory System (Inventory Application):\n\n- Follow Laravel best practices (Eloquent relationships, service layers, resource controllers).\n- Avoid raw SQL; use Eloquent and Laravel's query builder.\n- Use TailwindCSS for all styling; ensure all views are responsive and match Filament's design language.\n- Use Filament to scaffold CRUD resources (Loans, Items, Categories, Borrowers).\n- Implement proper status, quantity, and serial number validation when dealing with item loans.\n- Use Blade components for UI reuse and avoid placing business logic in views.\n- Implement role-based access control (Admin, Clerk, Viewer) as per PRD.\n- Generate printable vouchers using Blade or PDF generation on loan submission.\n- Use Filament Relation Managers and Form Repeaters for nested data like `loan_items`.\n- All code should follow PSR-12 and be mobile-friendly."
+    },
+    {
+      "title": "🧾 Loan Form Logic",
+      "content": "Use searchable multi-select dropdowns for items. Limit quantity based on availability. Use Form Repeaters for multiple item entries. Store in the `loan_items` pivot table. Validate quantity, status, and condition. Generate a printable voucher after submission."
+    },
+    {
+      "title": "📦 Item Management",
+      "content": "Each item should belong to a category and have fields like status, quantity, serials, and condition. On loan, reduce quantity and mark as `loaned`. On return or delete, revert to `available`. Use custom status badges in Filament tables."
+    },
+    {
+      "title": "📊 Dashboard UI",
+      "content": "Use Filament Widgets or Blade components to show stats: total items, active loans, overdue, etc. Use tabs/filters for view switching. Keep the UI clean and responsive using Tailwind. Prioritize clarity and ease of navigation."
+    },
+    {
+      "title": "🖨️ Loan Voucher & Reports",
+      "content": "Generate a printable loan voucher after submission. Include borrower details, item list with serials and condition, and loan dates. Use Blade or dompdf. Add a 'Print Voucher' button in the Loan view. Keep formatting clean and print-ready."
+    }
+  ]
+}

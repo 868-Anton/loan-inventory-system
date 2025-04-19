@@ -143,7 +143,7 @@ This application manages the loaning and tracking of inventory items. It support
 - [ ] Export/print reports
 
 ### 🔧 Phase 3 – UI & UX Enhancements *(Pending)*
-- [ ] Column visibility picker
+- [x] Column visibility picker
 - [ ] Drag-and-drop column reordering
 - [ ] Reusable Blade components
 - [ ] Demo seeders for test data
@@ -169,6 +169,59 @@ This application manages the loaning and tracking of inventory items. It support
 
 ---
 
+---
+
+## 🔁 Loan Return Flow
+
+Add a dedicated interface or page to process returned items.
+
+When a loan is returned:
+
+- Update each item’s `condition_after`
+- Update return `status` (e.g. `returned`, `damaged`, `lost`)
+- Automatically update item status to:
+  - `available` if returned in good condition
+  - `damaged` or `lost` if noted in condition
+- Optionally, provide a checkbox list for:
+  - Partial returns
+  - Items returned in mixed condition
+
+---
+
+## 📄 Reports & Logs
+
+Enable filtering of loans by:
+
+- Borrower name or ID
+- Loan date range
+- Specific item or item category
+
+Generate summaries of:
+
+- Damaged or missing items
+- Loan history per borrower
+
+Export options:
+
+- PDF or Excel format
+- Print preview layout for reports
+
+Borrower activity log should include:
+
+- All loans made
+- Return history
+- Outstanding or overdue items
+
+---
+
 ## ✅ Final Notes
-This document should guide all development, testing, and validation efforts. All PRs and feature branches should reference the applicable section from this PRD.
+
+This PRD should guide **all Cursor interactions**. Each PR or feature branch must:
+
+- Reference relevant sections from this PRD
+- Follow Laravel and Filament conventions
+- Maintain mobile responsiveness and consistent UI/UX
+- Ensure logic is testable, DRY, and modular
+
+
 
