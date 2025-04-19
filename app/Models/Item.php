@@ -94,6 +94,33 @@ class Item extends Model
     }
 
     /**
+     * Check if the item is currently being loaned out (has active loans).
+     * This may differ from the item's status field as we're checking the actual loan_items.
+     *
+     * @return bool
+     */
+    public function isCurrentlyLoaned(): bool
+    {
+        return $this->loans()
+            ->whereIn('loans.status', ['active', 'overdue', 'pending'])
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->exists();
+    }
+
+    /**
+     * Get the total quantity of this item that is currently borrowed.
+     * 
+     * @return int
+     */
+    public function borrowedQuantity(): int
+    {
+        return $this->loans()
+            ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->sum('loan_items.quantity');
+    }
+
+    /**
      * Bootstrap the model and its traits.
      */
     protected static function boot()

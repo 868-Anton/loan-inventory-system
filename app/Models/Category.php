@@ -86,4 +86,43 @@ class Category extends Model
             })
             ->count();
     }
+
+    /**
+     * Get the total quantity of all items in this category.
+     * 
+     * @return int
+     */
+    public function totalQuantity(): int
+    {
+        return $this->items()->sum('total_quantity');
+    }
+
+    /**
+     * Get the total quantity of items that are currently borrowed in this category.
+     * 
+     * @return int
+     */
+    public function totalBorrowed(): int
+    {
+        // Get all items in this category
+        $items = $this->items()->get();
+
+        // Sum up the borrowed quantities
+        $totalBorrowed = 0;
+        foreach ($items as $item) {
+            $totalBorrowed += $item->borrowedQuantity();
+        }
+
+        return $totalBorrowed;
+    }
+
+    /**
+     * Get the total quantity of items that are available in this category.
+     * 
+     * @return int
+     */
+    public function totalAvailable(): int
+    {
+        return $this->totalQuantity() - $this->totalBorrowed();
+    }
 }

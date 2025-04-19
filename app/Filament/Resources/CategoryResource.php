@@ -58,46 +58,35 @@ class CategoryResource extends Resource
                 Tables\Columns\TextColumn::make('color')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('items_count')
+                Tables\Columns\TextColumn::make('total_quantity')
                     ->label('All Items')
-                    ->counts('items')
+                    ->state(function (Category $record): int {
+                        return $record->totalQuantity();
+                    })
                     ->url(fn(Category $record): string => route('categories.items', $record))
                     ->badge()
                     ->color('success')
-                    ->tooltip('Click to view all items in this category, regardless of status'),
-                Tables\Columns\TextColumn::make('available_items_count')
+                    ->tooltip('Total quantity of all items in this category'),
+                Tables\Columns\TextColumn::make('total_available')
                     ->label('Available Items')
                     ->state(function (Category $record): int {
-                        return $record->items()
-                            ->whereRaw('LOWER(status) = ?', ['available'])
-                            ->count();
+                        return $record->totalAvailable();
                     })
                     ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'available']))
                     ->badge()
                     ->color('warning') // Orange
                     ->alignCenter()
-                    ->tooltip('Click to view available items in this category'),
-                Tables\Columns\TextColumn::make('borrowed_items_count')
+                    ->tooltip('Total quantity of available items in this category'),
+                Tables\Columns\TextColumn::make('total_borrowed')
                     ->label('Borrowed Items')
                     ->state(function (Category $record): int {
-                        // Count items in this category that are either:
-                        // 1. Directly marked as "borrowed" in the items table
-                        // 2. Currently part of an active loan
-                        return $record->items()
-                            ->where(function ($query) {
-                                $query->whereRaw('LOWER(status) = ?', ['borrowed'])
-                                    ->orWhereHas('loans', function ($loanQuery) {
-                                        $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
-                                            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
-                                    });
-                            })
-                            ->count();
+                        return $record->totalBorrowed();
                     })
                     ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'borrowed']))
                     ->badge()
                     ->color('danger')
                     ->alignCenter()
-                    ->tooltip('Click to view borrowed items in this category'),
+                    ->tooltip('Total quantity of borrowed items in this category'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
