@@ -12,8 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('loans', function (Blueprint $table) {
-            // Add the voucher_path column to store the path to the loan voucher PDF
-            $table->string('voucher_path')->nullable()->after('signature');
+            // Check if voucher_path column doesn't exist before adding it
+            if (!Schema::hasColumn('loans', 'voucher_path')) {
+                // Add the voucher_path column to store the path to the loan voucher PDF
+                $table->string('voucher_path')->nullable()->after('signature');
+            }
         });
     }
 
@@ -24,7 +27,9 @@ return new class extends Migration
     {
         Schema::table('loans', function (Blueprint $table) {
             // Remove the column if rolling back
-            $table->dropColumn('voucher_path');
+            if (Schema::hasColumn('loans', 'voucher_path')) {
+                $table->dropColumn('voucher_path');
+            }
         });
     }
 };
