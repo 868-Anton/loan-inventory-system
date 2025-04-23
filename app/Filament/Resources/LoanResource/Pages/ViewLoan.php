@@ -130,6 +130,20 @@ class ViewLoan extends ViewRecord
               ])
               ->columns(3),
           ]),
+
+        Infolists\Components\Section::make('Documentation')
+          ->schema([
+            Infolists\Components\ImageEntry::make('signature')
+              ->disk('public')
+              ->label('Borrower Signature'),
+            Infolists\Components\TextEntry::make('voucher_path')
+              ->label('Voucher')
+              ->formatStateUsing(fn($state) => $state ? 'Available' : 'Not available')
+              ->url(fn($record) => $record->voucher_path ? route('loans.voucher', $record) : null)
+              ->openUrlInNewTab()
+              ->visible(fn($record) => $record->voucher_path !== null),
+          ])
+          ->columns(2),
       ]);
   }
 }
