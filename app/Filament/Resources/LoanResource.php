@@ -89,7 +89,8 @@ class LoanResource extends Resource
                                         titleAttribute: 'name',
                                         modifyQueryUsing: fn(Builder $query) => $query->where('deleted_at', null)
                                     )
-                                    ->searchable()
+                                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->name} ({$record->email})")
+                                    ->searchable(['name', 'email'])
                                     ->preload()
                                     ->visible(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User')
                                     ->required(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User'),
@@ -179,7 +180,7 @@ class LoanResource extends Resource
                                                 if (!$itemId) return 1;
 
                                                 $item = Item::find($itemId);
-                                                return $item ? $item->getAvailableQuantity() : 1;
+                                                return $item ? $item->isAvailable() ? 1 : 0 : 1;
                                             })
                                             ->helperText(function (Forms\Get $get) {
                                                 $itemId = $get('item_id');
@@ -188,7 +189,7 @@ class LoanResource extends Resource
                                                 $item = Item::find($itemId);
                                                 if (!$item) return null;
 
-                                                $available = $item->getAvailableQuantity();
+                                                $available = $item->isAvailable() ? 1 : 0;
                                                 return "Available: {$available}";
                                             })
                                             ->required(),
@@ -368,7 +369,8 @@ class LoanResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('due_date', 'desc');
     }
 
     public static function getRelations(): array
