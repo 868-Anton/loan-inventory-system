@@ -76,7 +76,7 @@ class LoansRelationManager extends RelationManager
       ])
       ->actions([
         Tables\Actions\Action::make('view')
-          ->url(fn($record) => route('filament.admin.resources.loans.edit', $record))
+          ->url(fn($record) => route('filament.admin.resources.loans.view', $record))
           ->icon('heroicon-o-eye'),
         Tables\Actions\Action::make('print_voucher')
           ->label('Print Voucher')
