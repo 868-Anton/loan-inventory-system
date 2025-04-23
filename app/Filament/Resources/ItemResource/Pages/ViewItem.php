@@ -31,7 +31,11 @@ class ViewItem extends ViewRecord
       ->schema([
         Infolists\Components\Section::make('Active Loans Summary')
           ->visible(fn() => $this->record->isCurrentlyLoaned())
-          ->description(fn() => "This item currently has " . $this->record->borrowedQuantity() . " units on loan.")
+          ->description(
+            fn() => $this->record->isCurrentlyLoaned()
+              ? 'This item is currently loaned out.'
+              : 'This item is currently available.'
+          )
           ->schema([
             Infolists\Components\TextEntry::make('current_loans')
               ->label('Current Borrowers')
