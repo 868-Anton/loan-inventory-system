@@ -16,6 +16,26 @@ class ViewItem extends ViewRecord
   {
     return [
       Actions\EditAction::make(),
+      Actions\Action::make('viewLoan')
+        ->label('View Loan')
+        ->icon('heroicon-o-eye')
+        ->color('danger')
+        ->url(function () {
+          $loan = $this->record->loans()
+            ->whereIn('loans.status', ['active', 'pending'])
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->latest()
+            ->first();
+
+          return $loan ? route('filament.admin.resources.loans.view', $loan) : '#';
+        })
+        ->visible(function () {
+          return $this->record->status === 'borrowed' &&
+            $this->record->loans()
+            ->whereIn('loans.status', ['active', 'pending'])
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->exists();
+        }),
       Actions\Action::make('createLoan')
         ->label('Create Loan')
         ->icon('heroicon-o-paper-clip')
