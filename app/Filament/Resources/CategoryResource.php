@@ -116,7 +116,9 @@ class CategoryResource extends Resource
                 ]),
             ])
             // Add row click behavior
-            ->recordUrl(fn(Category $record): string => route('categories.items', $record));
+            ->recordUrl(fn(Category $record): string => route('categories.items', $record))
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order');
     }
 
     public static function getRelations(): array
