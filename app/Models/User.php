@@ -74,4 +74,12 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->morphMany(Loan::class, 'borrower');
     }
+
+    /**
+     * Get the name with email for display in forms.
+     */
+    public function getNameWithEmailAttribute(): string
+    {
+        return "{$this->name} ({$this->email})";
+    }
 }

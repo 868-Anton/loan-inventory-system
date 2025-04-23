@@ -84,13 +84,13 @@ class LoanResource extends Resource
                                 // Registered User Selector (visible only if borrower type is User)
                                 Forms\Components\Select::make('borrower_id')
                                     ->label('Select User')
-                                    ->relationship(
-                                        name: 'borrower',
-                                        titleAttribute: 'name',
-                                        modifyQueryUsing: fn(Builder $query) => $query->where('deleted_at', null)
-                                    )
-                                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->name} ({$record->email})")
-                                    ->searchable(['name', 'email'])
+                                    ->options(function () {
+                                        return \App\Models\User::where('deleted_at', null)
+                                            ->get()
+                                            ->pluck('nameWithEmail', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
                                     ->preload()
                                     ->visible(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User')
                                     ->required(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User'),
