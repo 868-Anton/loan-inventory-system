@@ -50,10 +50,10 @@ class TableSettingsServiceProvider extends ServiceProvider
             // $table->persistFiltersInSession(true);
             // $table->persistSortInSession(true);
 
-            // Make tables reorderable
-            if (!$table->isReorderable()) {
-                $table->reorderable('sort_order');
-            }
+            // DO NOT make tables reorderable globally - this causes errors on tables without sort_order
+            // if (!$table->isReorderable()) {
+            //     $table->reorderable('sort_order');
+            // }
         });
     }
 }

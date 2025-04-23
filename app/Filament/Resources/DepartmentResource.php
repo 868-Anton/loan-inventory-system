@@ -85,7 +85,8 @@ class DepartmentResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('sort_order');
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order');
     }
 
     public static function getRelations(): array

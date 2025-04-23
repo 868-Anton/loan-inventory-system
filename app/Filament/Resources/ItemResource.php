@@ -223,7 +223,8 @@ class ItemResource extends Resource
                         }),
                 ]),
             ])
-            ->defaultSort('sort_order');
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order');
     }
 
     public static function getRelations(): array

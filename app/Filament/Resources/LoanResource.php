@@ -369,8 +369,7 @@ class LoanResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])
-            ->defaultSort('due_date', 'desc');
+            ]);
     }
 
     public static function getRelations(): array
