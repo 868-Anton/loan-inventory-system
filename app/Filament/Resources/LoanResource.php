@@ -245,7 +245,8 @@ class LoanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('loan_number')
-                    ->searchable(),
+                    ->searchable()
+                    ->url(fn(Loan $record): string => route('filament.admin.resources.loans.view', $record)),
                 Tables\Columns\TextColumn::make('borrower')
                     ->label('Borrower')
                     ->getStateUsing(function ($record): string {
@@ -335,6 +336,7 @@ class LoanResource extends Resource
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('return_date')),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\Action::make('print_voucher')
                     ->label('Print Voucher')
                     ->url(fn(Loan $record): ?string => route('loans.voucher', $record))
@@ -384,6 +386,7 @@ class LoanResource extends Resource
         return [
             'index' => Pages\ListLoans::route('/'),
             'create' => Pages\CreateLoan::route('/create'),
+            'view' => Pages\ViewLoan::route('/{record}'),
             'edit' => Pages\EditLoan::route('/{record}/edit'),
         ];
     }
