@@ -123,6 +123,21 @@
                             Create Loan
                         </a>
                     @endif
+                    @if($item->status === 'borrowed')
+                        @php
+                        $activeLoan = $item->loans()->whereIn('loans.status', ['active', 'pending', 'overdue'])->latest()->first();
+                        @endphp
+                        @if($activeLoan)
+                        <a href="{{ route('filament.admin.resources.loans.view', $activeLoan) }}" 
+                          class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Loan
+                        </a>
+                        @endif
+                    @endif
                     <a href="{{ route('filament.admin.resources.items.edit', $item) }}" 
                       class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
                         Edit Item
