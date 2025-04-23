@@ -23,7 +23,6 @@ class Item extends Model
         'purchase_cost',
         'warranty_expiry',
         'status',
-        'total_quantity',
         'category_id',
         'custom_attributes',
     ];
@@ -49,7 +48,7 @@ class Item extends Model
     public function loans(): BelongsToMany
     {
         return $this->belongsToMany(Loan::class, 'loan_items')
-            ->withPivot(['quantity', 'serial_numbers', 'condition_before', 'condition_after', 'status'])
+            ->withPivot(['serial_numbers', 'condition_before', 'condition_after', 'status'])
             ->withTimestamps();
     }
 
@@ -70,32 +69,7 @@ class Item extends Model
     }
 
     /**
-     * Get the total quantity of the item available for loan.
-     * This can be overridden in child classes for different inventory systems.
-     * 
-     * @return int
-     */
-    public function getAvailableQuantity(): int
-    {
-        if (!$this->isAvailable()) {
-            return 0;
-        }
-
-        // Calculate the total quantity borrowed of this item in active loans
-        $borrowedQuantity = $this->loans()
-            ->whereIn('loans.status', ['pending', 'active', 'overdue'])
-            ->sum('loan_items.quantity');
-
-        // Assuming there's a total_quantity field or method
-        // If not, override in a custom implementation or set a default
-        $totalQuantity = $this->total_quantity ?? 1;
-
-        return max(0, $totalQuantity - $borrowedQuantity);
-    }
-
-    /**
-     * Check if the item is currently being loaned out (has active loans).
-     * This may differ from the item's status field as we're checking the actual loan_items.
+     * Check if the item is currently being loaned out.
      *
      * @return bool
      */
@@ -108,16 +82,14 @@ class Item extends Model
     }
 
     /**
-     * Get the total quantity of this item that is currently borrowed.
+     * Get all items in a specific category.
      * 
-     * @return int
+     * @param int $categoryId
+     * @return Builder
      */
-    public function borrowedQuantity(): int
+    public static function inCategory(int $categoryId): Builder
     {
-        return $this->loans()
-            ->whereIn('loans.status', ['active', 'pending', 'overdue'])
-            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
-            ->sum('loan_items.quantity');
+        return self::where('category_id', $categoryId);
     }
 
     /**

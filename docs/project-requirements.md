@@ -32,7 +32,6 @@ This application manages the loaning and tracking of inventory items. It support
 ---
 
 ## Functional Requirements
-
 ### 📁 Categories Page
 - Show all categories with:
   - Category name

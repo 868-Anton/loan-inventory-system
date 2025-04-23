@@ -70,32 +70,56 @@ class LoanResource extends Resource
 
                         Forms\Components\Section::make('Borrower Information')
                             ->schema([
-                                Forms\Components\Toggle::make('is_guest')
-                                    ->label('Guest Borrower')
+                                Forms\Components\Select::make('borrower_type')
+                                    ->label('Borrower Type')
+                                    ->options([
+                                        'App\\Models\\User' => 'Registered User',
+                                        'App\\Models\\GuestBorrower' => 'Guest',
+                                    ])
+                                    ->default('App\\Models\\User')
+                                    ->required()
                                     ->live()
-                                    ->helperText('Toggle on if the borrower is not a registered user'),
-                                Forms\Components\TextInput::make('guest_name')
-                                    ->label('Name')
-                                    ->maxLength(255)
-                                    ->required(fn(Forms\Get $get): bool => $get('is_guest'))
-                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
-                                Forms\Components\TextInput::make('guest_email')
-                                    ->label('Email')
-                                    ->email()
-                                    ->maxLength(255)
-                                    ->required(fn(Forms\Get $get): bool => $get('is_guest'))
-                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
-                                Forms\Components\TextInput::make('guest_phone')
-                                    ->label('Phone')
-                                    ->tel()
-                                    ->maxLength(255)
-                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
-                                Forms\Components\TextInput::make('guest_id')
-                                    ->label('ID Number')
-                                    ->maxLength(255)
-                                    ->visible(fn(Forms\Get $get): bool => $get('is_guest')),
+                                    ->afterStateUpdated(fn(Forms\Set $set) => $set('borrower_id', null)),
+
+                                // Registered User Selector (visible only if borrower type is User)
+                                Forms\Components\Select::make('borrower_id')
+                                    ->label('Select User')
+                                    ->relationship(
+                                        name: 'borrower',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn(Builder $query) => $query->where('deleted_at', null)
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->visible(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User')
+                                    ->required(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\User'),
+
+                                // Guest Borrower Form (visible only if borrower type is Guest Borrower)
+                                Forms\Components\Group::make([
+                                    Forms\Components\TextInput::make('guest_name')
+                                        ->label('Name')
+                                        ->required(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\GuestBorrower')
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('guest_email')
+                                        ->label('Email')
+                                        ->email()
+                                        ->required(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\GuestBorrower')
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('guest_phone')
+                                        ->label('Phone')
+                                        ->tel()
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('guest_id_number')
+                                        ->label('ID Number')
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('guest_organization')
+                                        ->label('Organization')
+                                        ->maxLength(255),
+                                ])
+                                    ->visible(fn(Forms\Get $get): bool => $get('borrower_type') === 'App\\Models\\GuestBorrower')
+                                    ->columns(2),
                             ])
-                            ->columns(2),
+                            ->columns(1),
 
                         Forms\Components\Section::make('Borrowed Items')
                             ->schema([
@@ -145,7 +169,8 @@ class LoanResource extends Resource
                                                 }
                                             }),
 
-                                        Forms\Components\TextInput::make('quantity')
+                                        Forms\Components\TextInput::make('deprecated_quantity')
+                                            ->label('Quantity')
                                             ->numeric()
                                             ->default(1)
                                             ->minValue(1)
@@ -181,7 +206,7 @@ class LoanResource extends Resource
                                     ->itemLabel(
                                         fn(array $state): ?string =>
                                         Item::find($state['item_id'])?->name
-                                            ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['quantity'] ?? 1) . ')'
+                                            ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['deprecated_quantity'] ?? 1) . ')'
                                             : 'New Item'
                                     )
                                     ->addActionLabel('Add Item')
@@ -222,7 +247,22 @@ class LoanResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('borrower')
                     ->label('Borrower')
-                    ->getStateUsing(fn(Loan $record): string => $record->getBorrowerName())
+                    ->getStateUsing(function ($record): string {
+                        // If using the polymorphic relationship
+                        if ($record->borrower_type && $record->borrower_id) {
+                            $borrowerName = $record->borrower?->name ?? 'Unknown';
+
+                            // Show label for guest borrowers
+                            if ($record->borrower_type === 'App\\Models\\GuestBorrower') {
+                                $borrowerName .= ' [Guest]';
+                            }
+
+                            return $borrowerName;
+                        }
+
+                        // Legacy fallback
+                        return $record->getBorrowerName();
+                    })
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query
                             ->where(function (Builder $query) use ($search): Builder {
@@ -230,6 +270,12 @@ class LoanResource extends Resource
                                     ->where('guest_name', 'like', "%{$search}%")
                                     ->orWhereHas(
                                         'user',
+                                        fn(Builder $q) =>
+                                        $q->where('name', 'like', "%{$search}%")
+                                    )
+                                    ->orWhereHasMorph(
+                                        'borrower',
+                                        ['App\\Models\\User', 'App\\Models\\GuestBorrower'],
                                         fn(Builder $q) =>
                                         $q->where('name', 'like', "%{$search}%")
                                     );
@@ -349,15 +395,12 @@ class LoanResource extends Resource
         // Get the created loan
         $loan = static::getModel()::latest('id')->first();
 
-        // If there are items attached to this loan and the loan is active or pending
-        if (isset($data['items']) && in_array($loan->status, ['active', 'pending', 'overdue'])) {
-            foreach ($data['items'] as $itemData) {
-                // Update item status to borrowed
-                $item = \App\Models\Item::find($itemData['item_id']);
-                if ($item) {
-                    $item->status = 'borrowed';
-                    $item->save();
-                }
+        // If the loan is active or pending, update the status of attached items
+        if (in_array($loan->status, ['active', 'pending', 'overdue'])) {
+            foreach ($loan->items as $item) {
+                // Update each individual item's status to borrowed
+                $item->status = 'borrowed';
+                $item->save();
             }
         }
     }

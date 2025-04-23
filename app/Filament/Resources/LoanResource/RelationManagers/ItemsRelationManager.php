@@ -50,7 +50,10 @@ class ItemsRelationManager extends RelationManager
           ->searchable(),
         Tables\Columns\TextColumn::make('category.name')
           ->sortable(),
+        Tables\Columns\TextColumn::make('pivot.deprecated_quantity')
+          ->label('Quantity'),
         Tables\Columns\TextColumn::make('pivot.status')
+          ->label('Loan Status')
           ->badge()
           ->color(fn(string $state): string => match ($state) {
             'loaned' => 'warning',
@@ -71,7 +74,14 @@ class ItemsRelationManager extends RelationManager
         Tables\Actions\AttachAction::make()
           ->preloadRecordSelect()
           ->form(fn(Tables\Actions\AttachAction $action): array => [
-            $action->getRecordSelect(),
+            $action->getRecordSelect()
+              ->label('Select Item')
+              ->helperText('Only available items are shown'),
+            Forms\Components\TextInput::make('deprecated_quantity')
+              ->label('Quantity')
+              ->numeric()
+              ->default(1)
+              ->minValue(1),
             Forms\Components\Textarea::make('condition_before')
               ->placeholder('Item condition before loan'),
             Forms\Components\Select::make('status')

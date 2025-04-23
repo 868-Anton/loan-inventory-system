@@ -3,8 +3,11 @@
 namespace App\Filament\Resources\LoanResource\Pages;
 
 use App\Filament\Resources\LoanResource;
+use App\Services\LoanService;
+use App\Exceptions\LoanCreationException;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
@@ -42,7 +45,7 @@ class CreateLoan extends CreateRecord
                         // Add the item to the form data
                         $data['items'][] = [
                             'item_id' => $item->id,
-                            'quantity' => $requestItem['quantity'] ?? 1,
+                            'deprecated_quantity' => $requestItem['deprecated_quantity'] ?? $requestItem['quantity'] ?? 1,
                         ];
                     } else {
                         Log::warning('Item not found for prefill', ['item_id' => $requestItem['item_id']]);
@@ -68,7 +71,7 @@ class CreateLoan extends CreateRecord
             // Ensure we create at least one row in the repeater
             $data['items'] = [[
                 'item_id' => null,
-                'quantity' => 1,
+                'deprecated_quantity' => 1,
             ]];
         }
 
@@ -84,53 +87,58 @@ class CreateLoan extends CreateRecord
         }
     }
 
+    /**
+     * Override the record creation to use LoanService
+     */
     protected function handleRecordCreation(array $data): Model
     {
-        // Extract items data
-        $items = $data['items'] ?? [];
-        unset($data['items']);
+        try {
+            // Use LoanService to create the loan
+            $loanService = app(LoanService::class);
+            $loan = $loanService->createLoan($data);
 
-        // Create the loan record
-        $record = static::getModel()::create($data);
+            // Show success notification
+            Notification::make()
+                ->success()
+                ->title('Loan Created')
+                ->body('The loan has been created successfully.')
+                ->send();
 
-        // Add items with pivot data
-        foreach ($items as $item) {
-            if (!empty($item['item_id'])) {
-                // Get the item model
-                $itemModel = \App\Models\Item::find($item['item_id']);
+            return $loan;
+        } catch (LoanCreationException $e) {
+            // Handle specific loan creation exceptions
+            $errorTitle = 'Loan Creation Failed';
+            $errorMessage = $e->getMessage();
 
-                if ($itemModel) {
-                    // Check if item is already borrowed by another loan
-                    $borrowedByOtherLoan = $itemModel->status === 'borrowed' &&
-                        $itemModel->loans()
-                        ->whereIn('loans.status', ['active', 'pending', 'overdue'])
-                        ->exists();
-
-                    if ($borrowedByOtherLoan) {
-                        \Filament\Notifications\Notification::make()
-                            ->warning()
-                            ->title('Warning')
-                            ->body("Item '{$itemModel->name}' appears to be borrowed by another loan.")
-                            ->persistent()
-                            ->send();
-                    }
-
-                    // Always update the item status to borrowed when it's part of an active loan
-                    if (in_array($record->status, ['active', 'pending', 'overdue'])) {
-                        $itemModel->update(['status' => 'borrowed']);
-                    }
-
-                    // Attach to the loan with pivot data
-                    $record->items()->attach($itemModel->id, [
-                        'quantity' => $item['quantity'] ?? 1,
-                        'serial_numbers' => !empty($item['serial_numbers']) ? json_encode($item['serial_numbers']) : null,
-                        'condition_before' => $item['condition_before'] ?? null,
-                        'status' => 'loaned',
-                    ]);
-                }
+            // Customize message based on error code if needed
+            switch ($e->getCode()) {
+                case LoanCreationException::ERROR_INVALID_BORROWER:
+                    $errorTitle = 'Invalid Borrower';
+                    break;
+                case LoanCreationException::ERROR_INVALID_ITEMS:
+                    $errorTitle = 'Invalid Items';
+                    break;
+                case LoanCreationException::ERROR_INSUFFICIENT_QUANTITY:
+                    $errorTitle = 'Insufficient Quantity';
+                    break;
+                case LoanCreationException::ERROR_ITEM_ALREADY_BORROWED:
+                    $errorTitle = 'Item Already Borrowed';
+                    break;
             }
-        }
 
-        return $record;
+            // Show error notification
+            Notification::make()
+                ->danger()
+                ->title($errorTitle)
+                ->body($errorMessage)
+                ->persistent()
+                ->send();
+
+            // Halt form submission - this will throw an exception and stop execution
+            $this->halt();
+
+            // This line won't be reached due to halt() but is required for type safety
+            throw new \Exception('Loan creation was halted');
+        }
     }
 }

@@ -3,8 +3,11 @@
 namespace App\Filament\Resources\LoanResource\Pages;
 
 use App\Filament\Resources\LoanResource;
+use App\Services\LoanService;
+use App\Exceptions\LoanCreationException;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 
 class EditLoan extends EditRecord
@@ -18,66 +21,77 @@ class EditLoan extends EditRecord
         ];
     }
 
-    protected function handleRecordUpdate(Model $record, array $data): Model
+    protected function getFormModel(): Model
     {
-        // First save the basic loan data
-        $record->update($data);
+        $model = parent::getFormModel();
 
-        // Only manage items if they are in the request
-        if (isset($data['items'])) {
-            // Get previously attached items before detaching
-            $previousItems = $record->items()->pluck('items.id')->toArray();
-
-            // Clear existing items to avoid duplicates
-            $record->items()->detach();
-
-            // Reset status of previously attached items that are not in the new list
-            $newItemIds = collect($data['items'])->pluck('item_id')->filter()->toArray();
-            \App\Models\Item::whereIn('id', $previousItems)
-                ->whereNotIn('id', $newItemIds)
-                ->where('status', 'borrowed')
-                ->update(['status' => 'available']);
-
-            // Add new items with pivot data
-            foreach ($data['items'] as $item) {
-                if (!empty($item['item_id'])) {
-                    // Get the item model
-                    $itemModel = \App\Models\Item::find($item['item_id']);
-
-                    if ($itemModel) {
-                        // Check if item is already borrowed by another loan
-                        $borrowedByOtherLoan = $itemModel->status === 'borrowed' &&
-                            $itemModel->loans()
-                            ->where('loans.id', '!=', $record->id)
-                            ->whereIn('loans.status', ['active', 'pending', 'overdue'])
-                            ->exists();
-
-                        if ($borrowedByOtherLoan) {
-                            \Filament\Notifications\Notification::make()
-                                ->warning()
-                                ->title('Warning')
-                                ->body("Item '{$itemModel->name}' appears to be borrowed by another loan.")
-                                ->persistent()
-                                ->send();
-                        }
-
-                        // Always update the item status to borrowed when it's part of an active loan
-                        if (in_array($record->status, ['active', 'pending', 'overdue'])) {
-                            $itemModel->update(['status' => 'borrowed']);
-                        }
-
-                        // Attach to the loan with pivot data
-                        $record->items()->attach($itemModel->id, [
-                            'quantity' => $item['quantity'] ?? 1,
-                            'serial_numbers' => !empty($item['serial_numbers']) ? json_encode($item['serial_numbers']) : null,
-                            'condition_before' => $item['condition_before'] ?? null,
-                            'status' => 'loaned',
-                        ]);
-                    }
-                }
-            }
+        // If we have a guest borrower, pre-fill the guest borrower fields
+        if ($model->borrower_type === 'App\\Models\\GuestBorrower' && $model->borrower) {
+            $guestBorrower = $model->borrower;
+            $this->form->fill([
+                'guest_name' => $guestBorrower->name,
+                'guest_email' => $guestBorrower->email,
+                'guest_phone' => $guestBorrower->phone,
+                'guest_id_number' => $guestBorrower->id_number,
+                'guest_organization' => $guestBorrower->organization,
+            ]);
         }
 
-        return $record;
+        return $model;
+    }
+
+    /**
+     * Override the record update method to use LoanService
+     */
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        try {
+            // Use LoanService to update the loan
+            $loanService = app(LoanService::class);
+            $loan = $loanService->updateLoan($record, $data);
+
+            // Show success notification
+            Notification::make()
+                ->success()
+                ->title('Loan Updated')
+                ->body('The loan has been updated successfully.')
+                ->send();
+
+            return $loan;
+        } catch (LoanCreationException $e) {
+            // Handle specific loan exceptions
+            $errorTitle = 'Loan Update Failed';
+            $errorMessage = $e->getMessage();
+
+            // Customize message based on error code if needed
+            switch ($e->getCode()) {
+                case LoanCreationException::ERROR_INVALID_BORROWER:
+                    $errorTitle = 'Invalid Borrower';
+                    break;
+                case LoanCreationException::ERROR_INVALID_ITEMS:
+                    $errorTitle = 'Invalid Items';
+                    break;
+                case LoanCreationException::ERROR_INSUFFICIENT_QUANTITY:
+                    $errorTitle = 'Insufficient Quantity';
+                    break;
+                case LoanCreationException::ERROR_ITEM_ALREADY_BORROWED:
+                    $errorTitle = 'Item Already Borrowed';
+                    break;
+            }
+
+            // Show error notification
+            Notification::make()
+                ->danger()
+                ->title($errorTitle)
+                ->body($errorMessage)
+                ->persistent()
+                ->send();
+
+            // Halt form submission - this will throw an exception and stop execution
+            $this->halt();
+
+            // This line won't be reached due to halt() but is required for type safety
+            throw new \Exception('Loan update was halted');
+        }
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf as PdfFacade;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * The Loan model represents a loan record in the system.
@@ -57,6 +58,8 @@ class Loan extends Model
         'loan_number',
         'user_id',
         'department_id',
+        'borrower_type',
+        'borrower_id',
         'is_guest',
         'guest_name',
         'guest_email',
@@ -120,7 +123,7 @@ class Loan extends Model
     public function items(): BelongsToMany
     {
         return $this->belongsToMany(Item::class, 'loan_items')
-            ->withPivot(['quantity', 'serial_numbers', 'condition_before', 'condition_after', 'status'])
+            ->withPivot(['deprecated_quantity', 'serial_numbers', 'condition_before', 'condition_after', 'status'])
             ->withTimestamps();
     }
 
@@ -137,10 +140,24 @@ class Loan extends Model
     }
 
     /**
+     * Get the borrower that owns the loan.
+     */
+    public function borrower(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
      * Get the borrower name (user or guest)
      */
     public function getBorrowerName(): string
     {
+        // If using the new polymorphic relationship
+        if ($this->borrower_type && $this->borrower_id && $this->borrower) {
+            return $this->borrower->name ?? 'Unknown';
+        }
+
+        // Legacy fallback
         if ($this->is_guest) {
             return $this->guest_name;
         }
@@ -153,6 +170,12 @@ class Loan extends Model
      */
     public function getBorrowerEmail(): ?string
     {
+        // If using the new polymorphic relationship
+        if ($this->borrower_type && $this->borrower_id && $this->borrower) {
+            return $this->borrower->email ?? null;
+        }
+
+        // Legacy fallback
         if ($this->is_guest) {
             return $this->guest_email;
         }

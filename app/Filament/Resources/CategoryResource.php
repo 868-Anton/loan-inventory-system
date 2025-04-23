@@ -66,7 +66,7 @@ class CategoryResource extends Resource
                     ->url(fn(Category $record): string => route('categories.items', $record))
                     ->badge()
                     ->color('success')
-                    ->tooltip('Total quantity of all items in this category'),
+                    ->tooltip('Total count of all items in this category'),
                 Tables\Columns\TextColumn::make('total_available')
                     ->label('Available Items')
                     ->state(function (Category $record): int {
@@ -76,7 +76,7 @@ class CategoryResource extends Resource
                     ->badge()
                     ->color('warning') // Orange
                     ->alignCenter()
-                    ->tooltip('Total quantity of available items in this category'),
+                    ->tooltip('Total count of available items in this category'),
                 Tables\Columns\TextColumn::make('total_borrowed')
                     ->label('Borrowed Items')
                     ->state(function (Category $record): int {
@@ -86,7 +86,7 @@ class CategoryResource extends Resource
                     ->badge()
                     ->color('danger')
                     ->alignCenter()
-                    ->tooltip('Total quantity of borrowed items in this category'),
+                    ->tooltip('Total count of borrowed items in this category'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -7,7 +7,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -70,8 +70,8 @@ class User extends Authenticatable implements FilamentUser
     /**
      * Get the loans associated with the user.
      */
-    public function loans(): HasMany
+    public function loans(): MorphMany
     {
-        return $this->hasMany(Loan::class);
+        return $this->morphMany(Loan::class, 'borrower');
     }
 }

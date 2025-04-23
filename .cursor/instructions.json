@@ -19,6 +19,11 @@
     {
       "title": "🖨️ Loan Voucher & Reports",
       "content": "Generate a printable loan voucher after submission. Include borrower details, item list with serials and condition, and loan dates. Use Blade or dompdf. Add a 'Print Voucher' button in the Loan view. Keep formatting clean and print-ready."
+    },
+    {
+      "title": "🧠 Laravel Code Quality Standards",
+      "content": "- Use `declare(strict_types=1);` in all PHP files.\n- All classes (controllers, models, services) should be `final`.\n- Controllers must be thin and delegate logic to services.\n- Business logic belongs in `app/Services`.\n- Use typed properties, return types, and parameter type hints.\n- Use custom exceptions like `LoanCreationException` for domain errors.\n- Organize routes by feature.\n- Use PHPUnit for service tests.\n- Adhere to PSR-12 and Laravel naming conventions."
     }
+   
   ]
 }

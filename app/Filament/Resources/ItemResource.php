@@ -45,11 +45,6 @@ class ItemResource extends Resource
                                         Forms\Components\Textarea::make('description')
                                             ->columnSpanFull(),
                                     ]),
-                                Forms\Components\TextInput::make('total_quantity')
-                                    ->numeric()
-                                    ->default(1)
-                                    ->minValue(1)
-                                    ->required(),
                                 Forms\Components\Select::make('status')
                                     ->options([
                                         'available' => 'Available',
@@ -145,9 +140,6 @@ class ItemResource extends Resource
                         'danger' => 'lost',
                         'gray' => 'under_repair',
                     ]),
-                Tables\Columns\TextColumn::make('total_quantity')
-                    ->label('Quantity')
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('purchase_date')
                     ->date()
                     ->sortable()

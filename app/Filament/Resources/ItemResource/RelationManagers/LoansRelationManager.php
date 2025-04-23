@@ -16,6 +16,8 @@ class LoansRelationManager extends RelationManager
 
   protected static ?string $recordTitleAttribute = 'loan_number';
 
+  protected static ?string $title = 'Loan History';
+
   public function form(Form $form): Form
   {
     return $form
@@ -35,7 +37,30 @@ class LoansRelationManager extends RelationManager
           ->sortable(),
         Tables\Columns\TextColumn::make('borrower')
           ->label('Borrower')
-          ->getStateUsing(fn($record) => $record->getBorrowerName())
+          ->getStateUsing(function ($record) {
+            $borrowerName = $record->getBorrowerName();
+
+            // Add borrower type and info for guest borrowers
+            if ($record->borrower_type === 'App\\Models\\GuestBorrower') {
+              $info = [];
+
+              if ($record->borrower && $record->borrower->email) {
+                $info[] = $record->borrower->email;
+              }
+
+              if ($record->borrower && $record->borrower->id_number) {
+                $info[] = "ID: " . $record->borrower->id_number;
+              }
+
+              if (!empty($info)) {
+                $borrowerName .= ' (' . implode(', ', $info) . ')';
+              }
+
+              $borrowerName .= ' [Guest]';
+            }
+
+            return $borrowerName;
+          })
           ->searchable(),
         Tables\Columns\TextColumn::make('loan_date')
           ->date()
@@ -45,7 +70,8 @@ class LoansRelationManager extends RelationManager
           ->sortable(),
         Tables\Columns\TextColumn::make('return_date')
           ->date()
-          ->sortable(),
+          ->sortable()
+          ->placeholder('Not returned'),
         Tables\Columns\BadgeColumn::make('status')
           ->colors([
             'primary' => 'pending',
@@ -54,9 +80,19 @@ class LoansRelationManager extends RelationManager
             'info' => 'returned',
             'warning' => 'canceled',
           ]),
-        Tables\Columns\TextColumn::make('pivot.quantity')
+        Tables\Columns\TextColumn::make('pivot.deprecated_quantity')
           ->label('Quantity')
           ->sortable(),
+        Tables\Columns\TextColumn::make('pivot.status')
+          ->label('Item Status')
+          ->badge()
+          ->color(fn(string $state): string => match ($state) {
+            'loaned' => 'warning',
+            'returned' => 'success',
+            'damaged' => 'danger',
+            'lost' => 'danger',
+            default => 'gray',
+          }),
         Tables\Columns\TextColumn::make('pivot.condition_before')
           ->label('Condition Before')
           ->words(10)
@@ -64,9 +100,24 @@ class LoansRelationManager extends RelationManager
         Tables\Columns\TextColumn::make('pivot.condition_after')
           ->label('Condition After')
           ->words(10)
-          ->tooltip(fn($record) => $record->pivot->condition_after ?? ''),
+          ->tooltip(fn($record) => $record->pivot->condition_after ?? '')
+          ->placeholder('Not recorded'),
       ])
       ->filters([
+        Tables\Filters\SelectFilter::make('loan_status')
+          ->label('Loan Type')
+          ->options([
+            'active' => 'Active Loans',
+            'past' => 'Past Loans',
+          ])
+          ->query(function (Builder $query, array $data) {
+            if ($data['value'] === 'active') {
+              $query->whereIn('loans.status', ['active', 'pending', 'overdue']);
+            } elseif ($data['value'] === 'past') {
+              $query->whereIn('loans.status', ['returned', 'canceled']);
+            }
+          })
+          ->default('active'),
         Tables\Filters\SelectFilter::make('status')
           ->options([
             'pending' => 'Pending',
@@ -74,10 +125,12 @@ class LoansRelationManager extends RelationManager
             'overdue' => 'Overdue',
             'returned' => 'Returned',
             'canceled' => 'Canceled',
-          ]),
-        Tables\Filters\Filter::make('current_loans')
-          ->label('Current Loans')
-          ->query(fn(Builder $query) => $query->whereNull('return_date')),
+          ])
+          ->query(function (Builder $query, array $data) {
+            if (isset($data['value'])) {
+              $query->where('loans.status', $data['value']);
+            }
+          }),
       ])
       ->headerActions([
         // No header actions for relation
@@ -96,6 +149,10 @@ class LoansRelationManager extends RelationManager
       ->bulkActions([
         // No bulk actions needed for this relation
       ])
-      ->defaultSort('loan_date', 'desc');
+      ->defaultSort('loan_date', 'desc')
+      ->modifyQueryUsing(function (Builder $query) {
+        // Always specify which table the status column belongs to
+        return $query->select('loans.*');
+      });
   }
 }

@@ -41,8 +41,8 @@
                                 <p class="font-medium">{{ $item->category->name ?? 'Not categorized' }}</p>
                             </div>
                             <div class="py-2">
-                                <p class="text-sm text-gray-500">Quantity</p>
-                                <p class="font-medium">{{ $item->total_quantity ?? 1 }} unit(s)</p>
+                                <p class="text-sm text-gray-500">Type</p>
+                                <p class="font-medium">Individual Item</p>
                             </div>
                             <div class="py-2">
                                 <p class="text-sm text-gray-500">Serial Number</p>

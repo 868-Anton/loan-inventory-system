@@ -92,7 +92,6 @@ class ItemsController extends Controller
       'purchase_cost' => 'nullable|numeric|min:0',
       'warranty_expiry' => 'nullable|date',
       'status' => ['required', Rule::in(['available', 'borrowed', 'under_repair', 'lost'])],
-      'total_quantity' => 'required|integer|min:1',
       'category_id' => 'nullable|exists:categories,id',
       'thumbnail' => 'nullable|image|max:2048', // 2MB max
       'custom_attributes' => 'nullable|array',
@@ -121,7 +120,7 @@ class ItemsController extends Controller
     // Load relationships that might be needed for the view
     $item->load(['category', 'loans' => function ($query) {
       $query->whereIn('loans.status', ['active', 'pending', 'overdue'])
-        ->with('user');
+        ->with('borrower');
     }]);
 
     return view('items.show', compact('item'));
@@ -169,7 +168,6 @@ class ItemsController extends Controller
       'purchase_cost' => 'nullable|numeric|min:0',
       'warranty_expiry' => 'nullable|date',
       'status' => ['required', Rule::in(['available', 'borrowed', 'under_repair', 'lost'])],
-      'total_quantity' => 'required|integer|min:1',
       'category_id' => 'nullable|exists:categories,id',
       'thumbnail' => 'nullable|image|max:2048', // 2MB max
       'custom_attributes' => 'nullable|array',

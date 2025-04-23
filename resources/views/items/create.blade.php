@@ -73,12 +73,6 @@
                             </div>
 
                             <div>
-                                <label for="total_quantity" class="block text-sm font-medium text-gray-700">Total Quantity <span class="text-red-500">*</span></label>
-                                <input type="number" name="total_quantity" id="total_quantity" value="{{ old('total_quantity', 1) }}" min="1" required
-                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                            </div>
-
-                            <div>
                                 <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
                                 <textarea name="description" id="description" rows="4"
                                     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">{{ old('description') }}</textarea>

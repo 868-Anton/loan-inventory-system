@@ -19,6 +19,8 @@ class Category extends Model
         'parent_id',
         'sort_order',
         'color',
+        'icon',
+        'slug',
         'custom_fields',
     ];
 
@@ -73,56 +75,53 @@ class Category extends Model
 
     /**
      * Get the count of borrowed items in this category.
-     * An item is considered borrowed if it has active loans in the loan_items pivot table.
+     * An item is considered borrowed if it has active loans in the loan_items pivot table
+     * or if its status is set to 'borrowed'.
      * 
      * @return int
      */
     public function getBorrowedItemsCount(): int
     {
         return $this->items()
-            ->whereHas('loans', function ($query) {
-                $query->whereIn('loans.status', ['active', 'overdue', 'pending'])
-                    ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+            ->where(function ($query) {
+                // Items that are marked as borrowed in their status
+                $query->where('status', 'borrowed')
+                    // OR items that have active loans
+                    ->orWhereHas('loans', function ($loanQuery) {
+                        $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+                    });
             })
             ->count();
     }
 
     /**
-     * Get the total quantity of all items in this category.
+     * Get the total count of all items in this category.
      * 
      * @return int
      */
     public function totalQuantity(): int
     {
-        return $this->items()->sum('total_quantity');
+        return $this->items()->count();
     }
 
     /**
-     * Get the total quantity of items that are currently borrowed in this category.
+     * Get the total count of items that are currently borrowed in this category.
      * 
      * @return int
      */
     public function totalBorrowed(): int
     {
-        // Get all items in this category
-        $items = $this->items()->get();
-
-        // Sum up the borrowed quantities
-        $totalBorrowed = 0;
-        foreach ($items as $item) {
-            $totalBorrowed += $item->borrowedQuantity();
-        }
-
-        return $totalBorrowed;
+        return $this->getBorrowedItemsCount();
     }
 
     /**
-     * Get the total quantity of items that are available in this category.
+     * Get the total count of items that are available in this category.
      * 
      * @return int
      */
     public function totalAvailable(): int
     {
-        return $this->totalQuantity() - $this->totalBorrowed();
+        return $this->getAvailableItemsCount();
     }
 }

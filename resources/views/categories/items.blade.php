@@ -119,7 +119,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $item->total_quantity }} unit(s)
+                                    Individual Item
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
                                     <a 
