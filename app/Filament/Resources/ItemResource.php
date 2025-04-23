@@ -34,6 +34,9 @@ class ItemResource extends Resource
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->maxLength(255),
+                                Forms\Components\TextInput::make('sort_order')
+                                    ->numeric()
+                                    ->nullable(),
                                 Forms\Components\Select::make('category_id')
                                     ->relationship('category', 'name')
                                     ->searchable()
@@ -115,6 +118,10 @@ class ItemResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('sort_order')
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\ImageColumn::make('thumbnail')
                     ->label('Image')
                     ->defaultImageUrl(url('/storage/thumbnails/default.png'))
@@ -215,7 +222,8 @@ class ItemResource extends Resource
                             }
                         }),
                 ]),
-            ]);
+            ])
+            ->defaultSort('sort_order');
     }
 
     public static function getRelations(): array

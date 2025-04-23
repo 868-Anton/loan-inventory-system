@@ -224,7 +224,7 @@ final class LoanService
       $quantity = $itemData['deprecated_quantity'] ?? $itemData['quantity'] ?? 1;
 
       // Check if we have enough quantity
-      $availableQuantity = $item->getAvailableQuantity();
+      $availableQuantity = $item->isAvailable() ? 1 : 0;
       if ($quantity > $availableQuantity) {
         throw LoanCreationException::insufficientQuantity($item->name, $quantity, $availableQuantity);
       }
