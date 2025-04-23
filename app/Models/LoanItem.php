@@ -18,10 +18,12 @@ class LoanItem extends Model
         'condition_before',
         'condition_after',
         'status',
+        'returned_at',
     ];
 
     protected $casts = [
         'serial_numbers' => 'array',
+        'returned_at' => 'datetime',
     ];
 
     /**

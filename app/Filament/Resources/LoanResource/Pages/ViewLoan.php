@@ -7,6 +7,10 @@ use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Tables;
+use Filament\Forms;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class ViewLoan extends ViewRecord
 {
@@ -103,34 +107,6 @@ class ViewLoan extends ViewRecord
           ])
           ->columns(2),
 
-        Infolists\Components\Section::make('Borrowed Items')
-          ->schema([
-            Infolists\Components\RepeatableEntry::make('items')
-              ->schema([
-                Infolists\Components\TextEntry::make('name')
-                  ->label('Item Name'),
-                Infolists\Components\TextEntry::make('serial_number')
-                  ->label('Serial Number'),
-                Infolists\Components\TextEntry::make('pivot.deprecated_quantity')
-                  ->label('Quantity'),
-                Infolists\Components\TextEntry::make('pivot.condition_before')
-                  ->label('Condition Before'),
-                Infolists\Components\TextEntry::make('pivot.condition_after')
-                  ->label('Condition After'),
-                Infolists\Components\TextEntry::make('pivot.status')
-                  ->label('Item Status')
-                  ->badge()
-                  ->color(fn(string $state): string => match (strtolower($state)) {
-                    'loaned' => 'warning',
-                    'returned' => 'success',
-                    'damaged' => 'danger',
-                    'lost' => 'danger',
-                    default => 'gray',
-                  }),
-              ])
-              ->columns(3),
-          ]),
-
         Infolists\Components\Section::make('Documentation')
           ->schema([
             Infolists\Components\ImageEntry::make('signature')
@@ -145,5 +121,84 @@ class ViewLoan extends ViewRecord
           ])
           ->columns(2),
       ]);
+  }
+
+  public function table(Tables\Table $table): Tables\Table
+  {
+    return $table
+      ->relationship('items')
+      ->columns([
+        Tables\Columns\TextColumn::make('name')
+          ->label('Item Name')
+          ->searchable()
+          ->sortable(),
+        Tables\Columns\TextColumn::make('category.name')
+          ->label('Category')
+          ->searchable()
+          ->sortable(),
+        Tables\Columns\TextColumn::make('description')
+          ->label('Description')
+          ->limit(50)
+          ->tooltip(fn(string $state): string => $state),
+        Tables\Columns\TextColumn::make('pivot.serial_numbers')
+          ->label('Serial Numbers')
+          ->formatStateUsing(fn($state) => is_array($state) ? implode(', ', $state) : $state),
+        Tables\Columns\TextColumn::make('pivot.condition_before')
+          ->label('Condition Before')
+          ->limit(50)
+          ->tooltip(fn(string $state): string => $state),
+        Tables\Columns\TextColumn::make('pivot.status')
+          ->label('Status')
+          ->badge()
+          ->color(fn(string $state): string => match (strtolower($state)) {
+            'loaned' => 'warning',
+            'returned' => 'success',
+            'damaged' => 'danger',
+            'lost' => 'danger',
+            default => 'gray',
+          }),
+        Tables\Columns\TextColumn::make('pivot.returned_at')
+          ->label('Returned At')
+          ->dateTime()
+          ->sortable(),
+      ])
+      ->actions([
+        Tables\Actions\Action::make('returnItem')
+          ->label('Return Item')
+          ->icon('heroicon-o-arrow-uturn-left')
+          ->color('success')
+          ->form([
+            Forms\Components\Textarea::make('condition_after')
+              ->label('Condition After Return')
+              ->placeholder('Enter any notes about the condition of the item after return')
+              ->rows(3),
+          ])
+          ->requiresConfirmation()
+          ->modalHeading('Return Item')
+          ->modalDescription('Are you sure you want to mark this item as returned?')
+          ->action(function (array $data, $record): void {
+            $this->record->returnItem($record->id, $data['condition_after'] ?? null);
+
+            \Filament\Notifications\Notification::make()
+              ->success()
+              ->title('Item Returned')
+              ->body('The item has been marked as returned.')
+              ->send();
+
+            $this->refresh();
+          })
+          ->visible(fn($record) => !$record->pivot->returned_at && $record->pivot->status !== 'returned'),
+      ])
+      ->filters([
+        Tables\Filters\SelectFilter::make('status')
+          ->options([
+            'loaned' => 'Loaned',
+            'returned' => 'Returned',
+            'damaged' => 'Damaged',
+            'lost' => 'Lost',
+          ])
+          ->attribute('pivot.status'),
+      ])
+      ->heading('Borrowed Items');
   }
 }

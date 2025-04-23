@@ -271,4 +271,54 @@ class Loan extends Model
 
         return $this->save();
     }
+
+    /**
+     * Mark a single item in the loan as returned
+     * 
+     * @param int $itemId The ID of the item to mark as returned
+     * @param string|null $condition Optional condition notes after return
+     * @return bool Whether the item was successfully marked as returned
+     */
+    public function returnItem(int $itemId, ?string $condition = null): bool
+    {
+        // Check if the item exists in this loan
+        $loanItem = $this->items()->wherePivot('item_id', $itemId)->first();
+
+        if (!$loanItem) {
+            return false;
+        }
+
+        // Set the pivot data
+        $this->items()->updateExistingPivot($itemId, [
+            'status' => 'returned',
+            'returned_at' => now(),
+            'condition_after' => $condition,
+        ]);
+
+        // Check if this item is in any other active loans
+        $stillOnLoan = $loanItem->loans()
+            ->where('loans.id', '!=', $this->id)
+            ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->exists();
+
+        // If not in any other active loans, set it back to available
+        if (!$stillOnLoan) {
+            $loanItem->update(['status' => 'available']);
+        }
+
+        // Check if all items in this loan are now returned
+        $hasUnreturnedItems = $this->items()
+            ->wherePivotNotIn('status', ['returned', 'lost'])
+            ->exists();
+
+        // If all items are returned, update the loan status
+        if (!$hasUnreturnedItems && $this->status !== 'returned') {
+            $this->status = 'returned';
+            $this->return_date = now();
+            $this->save();
+        }
+
+        return true;
+    }
 }
