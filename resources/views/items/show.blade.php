@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $item->name }} - Item Details</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" type="text/css">
 </head>
+
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
         <!-- Page Header with Back Button -->
@@ -23,9 +25,13 @@
         <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
             <div class="flex justify-between items-center p-6 bg-indigo-50 border-b border-indigo-100">
                 <h2 class="text-xl font-bold text-indigo-800">{{ $item->name }}</h2>
-                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full 
-                    {{ $item->status === 'available' ? 'bg-green-100 text-green-800' : 
-                      ($item->status === 'borrowed' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                <span
+                    class="px-3 py-1 inline-flex text-sm font-semibold rounded-full 
+                    {{ $item->status === 'available'
+                        ? 'bg-green-100 text-green-800'
+                        : ($item->status === 'borrowed'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800') }}">
                     {{ ucfirst($item->status) }}
                 </span>
             </div>
@@ -60,50 +66,68 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="py-2">
                                 <p class="text-sm text-gray-500">Purchase Date</p>
-                                <p class="font-medium">{{ $item->purchase_date ? $item->purchase_date->format('Y-m-d') : 'N/A' }}</p>
+                                <p class="font-medium">
+                                    {{ $item->purchase_date ? $item->purchase_date->format('Y-m-d') : 'N/A' }}</p>
                             </div>
                             <div class="py-2">
                                 <p class="text-sm text-gray-500">Purchase Cost</p>
-                                <p class="font-medium">{{ $item->purchase_cost ? '$'.number_format($item->purchase_cost, 2) : 'N/A' }}</p>
+                                <p class="font-medium">
+                                    {{ $item->purchase_cost ? '$' . number_format($item->purchase_cost, 2) : 'N/A' }}</p>
                             </div>
                             <div class="py-2">
                                 <p class="text-sm text-gray-500">Warranty Expiry</p>
-                                <p class="font-medium">{{ $item->warranty_expiry ? $item->warranty_expiry->format('Y-m-d') : 'N/A' }}</p>
+                                <p class="font-medium">
+                                    {{ $item->warranty_expiry ? $item->warranty_expiry->format('Y-m-d') : 'N/A' }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                @if($item->description)
+                @if ($item->description)
                     <div class="mb-6">
                         <h3 class="font-medium text-gray-700 mb-2 border-b pb-2">Description</h3>
                         <p class="text-gray-600 py-2">{{ $item->description }}</p>
                     </div>
                 @endif
 
-                @if($item->loans && $item->loans->count() > 0)
+                @if ($item->loans && $item->loans->count() > 0)
                     <div class="mb-6">
                         <h3 class="font-medium text-gray-700 mb-2 border-b pb-2">Current Loan Information</h3>
                         <div class="overflow-x-auto mt-2">
                             <table class="min-w-full bg-white border border-gray-200">
                                 <thead>
                                     <tr>
-                                        <th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Loan Number</th>
-                                        <th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Borrower</th>
-                                        <th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Due Date</th>
-                                        <th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Status</th>
+                                        <th
+                                            class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                            Loan Number</th>
+                                        <th
+                                            class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                            Borrower</th>
+                                        <th
+                                            class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                            Due Date</th>
+                                        <th
+                                            class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                            Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
-                                    @foreach($item->loans as $loan)
+                                    @foreach ($item->loans as $loan)
                                         <tr>
-                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ $loan->loan_number }}</td>
-                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ $loan->getBorrowerName() }}</td>
-                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ $loan->due_date ? $loan->due_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                {{ $loan->loan_number }}</td>
+                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                {{ $loan->getBorrowerName() }}</td>
+                                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                {{ $loan->due_date ? $loan->due_date->format('Y-m-d') : 'N/A' }}</td>
                                             <td class="px-4 py-2 whitespace-nowrap">
-                                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                    {{ $loan->status === 'active' ? 'bg-green-100 text-green-800' : 
-                                                      ($loan->status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">
+                                                <span
+                                                    class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                    {{ $loan->status === 'active'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : ($loan->status === 'overdue'
+                                                            ? 'bg-red-100 text-red-800'
+                                                            : 'bg-blue-100 text-blue-800') }}">
                                                     {{ ucfirst($loan->status) }}
                                                 </span>
                                             </td>
@@ -117,29 +141,36 @@
 
                 <!-- Action Buttons -->
                 <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                    @if($item->status === 'available')
-                        <a href="{{ route('loan.item', $item) }}" 
-                          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                    @if ($item->status === 'available')
+                        <a href="{{ route('loan.item', $item) }}"
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
                             Create Loan
                         </a>
                     @endif
-                    @if($item->status === 'borrowed')
+                    @if ($item->status === 'borrowed')
                         @php
-                        $activeLoan = $item->loans()->whereIn('loans.status', ['active', 'pending', 'overdue'])->latest()->first();
+                            $activeLoan = $item
+                                ->loans()
+                                ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+                                ->latest()
+                                ->first();
                         @endphp
-                        @if($activeLoan)
-                        <a href="{{ route('filament.admin.resources.loans.view', $activeLoan) }}" 
-                          class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            View Loan
-                        </a>
+                        @if ($activeLoan)
+                            <a href="{{ route('filament.admin.resources.loans.view', $activeLoan) }}"
+                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Loan
+                            </a>
                         @endif
                     @endif
-                    <a href="{{ route('filament.admin.resources.items.edit', $item) }}" 
-                      class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
+                    <a href="{{ route('filament.admin.resources.items.edit', $item) }}"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
                         Edit Item
                     </a>
                 </div>
@@ -147,4 +178,5 @@
         </div>
     </div>
 </body>
-</html> 
+
+</html>
