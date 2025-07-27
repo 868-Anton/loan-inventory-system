@@ -31,17 +31,63 @@ class ViewLoan extends ViewRecord
         ->icon('heroicon-o-arrow-uturn-left')
         ->color('success')
         ->form([
-          \Filament\Forms\Components\Textarea::make('notes')
-            ->label('Return Notes')
-            ->placeholder('Condition of returned items, missing parts, damage, etc.')
+          Forms\Components\Select::make('condition_tags')
+            ->label('Condition Tags')
+            ->multiple()
+            ->searchable()
+            ->options([
+              '✅ Good Condition' => [
+                'returned-no-issues' => 'Returned with no issues',
+                'fully-functional' => 'Fully functional',
+                'clean-and-intact' => 'Clean and intact',
+              ],
+              '🧩 Missing Parts' => [
+                'missing-accessories' => 'Missing accessories',
+                'missing-components' => 'Missing components',
+                'incomplete-set' => 'Incomplete set',
+                'missing-manual-or-packaging' => 'Missing manual or packaging',
+              ],
+              '🔨 Physical Damage' => [
+                'damaged-cracked' => 'Cracked',
+                'damaged-dented' => 'Dented',
+                'broken-screen' => 'Broken screen',
+                'structural-damage' => 'Structural damage',
+              ],
+              '🛠 Needs Repair' => [
+                'non-functional' => 'Non-functional',
+                'requires-maintenance' => 'Requires maintenance',
+                'battery-issues' => 'Battery issues',
+              ],
+              '🧼 Sanitation Issues' => [
+                'dirty-needs-cleaning' => 'Dirty, needs cleaning',
+                'contaminated' => 'Contaminated',
+                'odor-present' => 'Odor present',
+              ],
+              '⚠️ Other Conditions' => [
+                'label-or-seal-removed' => 'Label/seal removed',
+                'unauthorized-modification' => 'Unauthorized modification',
+                'returned-late' => 'Returned late',
+              ],
+            ])
+            ->placeholder('Select item condition tags')
+            ->required(false),
+          Forms\Components\Textarea::make('return_notes')
+            ->label('Additional Notes')
+            ->placeholder('Add extra notes if necessary')
+            ->rows(3),
         ])
         ->action(function (array $data): void {
-          $this->record->markAsReturned($data['notes'] ?? null);
+          $this->record->update([
+            'condition_tags' => $data['condition_tags'] ?? [],
+            'return_notes' => $data['return_notes'] ?? '',
+            'status' => 'returned',
+            'return_date' => now(),
+          ]);
 
           \Filament\Notifications\Notification::make()
             ->success()
             ->title('Loan Returned')
-            ->body('All items have been marked as returned.')
+            ->body('All items have been marked as returned with condition details.')
             ->send();
         })
         ->requiresConfirmation()
@@ -120,6 +166,34 @@ class ViewLoan extends ViewRecord
               ->visible(fn($record) => $record->voucher_path !== null),
           ])
           ->columns(2),
+
+        Infolists\Components\Section::make('Return Information')
+          ->schema([
+            Infolists\Components\TextEntry::make('condition_tags')
+              ->label('Condition Tags')
+              ->formatStateUsing(function ($state) {
+                if (!$state || empty($state)) {
+                  return 'No tags';
+                }
+
+                return collect($state)->map(function ($tag) {
+                  // Convert tag format to readable text
+                  $parts = explode('.', $tag);
+                  if (count($parts) === 2) {
+                    $category = ucwords(str_replace('_', ' ', $parts[0]));
+                    $condition = ucwords(str_replace('-', ' ', $parts[1]));
+                    return "{$category}: {$condition}";
+                  }
+                  return ucwords(str_replace(['-', '_'], ' ', $tag));
+                })->join(', ');
+              })
+              ->visible(fn($record) => $record->status === 'returned'),
+            Infolists\Components\TextEntry::make('return_notes')
+              ->label('Return Notes')
+              ->visible(fn($record) => filled($record->return_notes)),
+          ])
+          ->columns(2)
+          ->visible(fn($record) => $record->status === 'returned'),
       ]);
   }
 
@@ -168,9 +242,49 @@ class ViewLoan extends ViewRecord
           ->icon('heroicon-o-arrow-uturn-left')
           ->color('success')
           ->form([
+            Forms\Components\Select::make('condition_tags')
+              ->label('Condition Tags')
+              ->multiple()
+              ->searchable()
+              ->options([
+                '✅ Good Condition' => [
+                  'returned-no-issues' => 'Returned with no issues',
+                  'fully-functional' => 'Fully functional',
+                  'clean-and-intact' => 'Clean and intact',
+                ],
+                '🧩 Missing Parts' => [
+                  'missing-accessories' => 'Missing accessories',
+                  'missing-components' => 'Missing components',
+                  'incomplete-set' => 'Incomplete set',
+                  'missing-manual-or-packaging' => 'Missing manual or packaging',
+                ],
+                '🔨 Physical Damage' => [
+                  'damaged-cracked' => 'Cracked',
+                  'damaged-dented' => 'Dented',
+                  'broken-screen' => 'Broken screen',
+                  'structural-damage' => 'Structural damage',
+                ],
+                '🛠 Needs Repair' => [
+                  'non-functional' => 'Non-functional',
+                  'requires-maintenance' => 'Requires maintenance',
+                  'battery-issues' => 'Battery issues',
+                ],
+                '🧼 Sanitation Issues' => [
+                  'dirty-needs-cleaning' => 'Dirty, needs cleaning',
+                  'contaminated' => 'Contaminated',
+                  'odor-present' => 'Odor present',
+                ],
+                '⚠️ Other Conditions' => [
+                  'label-or-seal-removed' => 'Label/seal removed',
+                  'unauthorized-modification' => 'Unauthorized modification',
+                  'returned-late' => 'Returned late',
+                ],
+              ])
+              ->placeholder('Select item condition tags')
+              ->required(false),
             Forms\Components\Textarea::make('condition_after')
-              ->label('Condition After Return')
-              ->placeholder('Enter any notes about the condition of the item after return')
+              ->label('Condition Notes')
+              ->placeholder('Enter any additional notes about the condition of the item after return')
               ->rows(3),
           ])
           ->requiresConfirmation()

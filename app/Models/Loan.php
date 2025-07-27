@@ -72,6 +72,8 @@ class Loan extends Model
         'status',
         'signature',
         'voucher_path',
+        'condition_tags',
+        'return_notes',
     ];
 
     protected $casts = [
@@ -79,6 +81,7 @@ class Loan extends Model
         'due_date' => 'date',
         'return_date' => 'date',
         'is_guest' => 'boolean',
+        'condition_tags' => 'array',
     ];
 
     /**

@@ -324,7 +324,9 @@ final class LoanService
         $loan->notes = $notes;
       }
 
-      // Update loan status
+      // Update loan with condition tags and return notes
+      $loan->condition_tags = $returnData['condition_tags'] ?? [];
+      $loan->return_notes = $returnData['return_notes'] ?? '';
       $loan->status = 'returned';
       $loan->return_date = $returnData['return_date'];
       $loan->save();
