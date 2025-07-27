@@ -70,7 +70,35 @@ class ViewLoan extends ViewRecord
               ],
             ])
             ->placeholder('Select item condition tags')
-            ->required(false),
+            ->required(false)
+            ->afterStateUpdated(function ($state, $set) {
+              if (!$state || empty($state)) {
+                return;
+              }
+
+              // Define good condition tags
+              $goodConditionTags = ['returned-no-issues', 'fully-functional', 'clean-and-intact'];
+
+              // Check if any good condition tags are selected
+              $hasGoodCondition = collect($state)->intersect($goodConditionTags)->isNotEmpty();
+
+              // Check if any issue tags are selected
+              $hasIssueTags = collect($state)->diff($goodConditionTags)->isNotEmpty();
+
+              if ($hasGoodCondition && $hasIssueTags) {
+                // If both good condition and issue tags are selected, keep only good condition tags
+                $filteredTags = collect($state)->intersect($goodConditionTags)->values()->toArray();
+                $set('condition_tags', $filteredTags);
+
+                // Show notification about the conflict
+                \Filament\Notifications\Notification::make()
+                  ->warning()
+                  ->title('Tag Conflict Resolved')
+                  ->body('Good condition tags cannot be selected with issue tags. Only good condition tags have been kept.')
+                  ->send();
+              }
+            })
+            ->helperText('Note: Good condition tags cannot be selected with issue tags. Selecting a good condition tag will automatically clear any issue tags.'),
           Forms\Components\Textarea::make('return_notes')
             ->label('Additional Notes')
             ->placeholder('Add extra notes if necessary')
@@ -281,7 +309,35 @@ class ViewLoan extends ViewRecord
                 ],
               ])
               ->placeholder('Select item condition tags')
-              ->required(false),
+              ->required(false)
+              ->afterStateUpdated(function ($state, $set) {
+                if (!$state || empty($state)) {
+                  return;
+                }
+
+                // Define good condition tags
+                $goodConditionTags = ['returned-no-issues', 'fully-functional', 'clean-and-intact'];
+
+                // Check if any good condition tags are selected
+                $hasGoodCondition = collect($state)->intersect($goodConditionTags)->isNotEmpty();
+
+                // Check if any issue tags are selected
+                $hasIssueTags = collect($state)->diff($goodConditionTags)->isNotEmpty();
+
+                if ($hasGoodCondition && $hasIssueTags) {
+                  // If both good condition and issue tags are selected, keep only good condition tags
+                  $filteredTags = collect($state)->intersect($goodConditionTags)->values()->toArray();
+                  $set('condition_tags', $filteredTags);
+
+                  // Show notification about the conflict
+                  \Filament\Notifications\Notification::make()
+                    ->warning()
+                    ->title('Tag Conflict Resolved')
+                    ->body('Good condition tags cannot be selected with issue tags. Only good condition tags have been kept.')
+                    ->send();
+                }
+              })
+              ->helperText('Note: Good condition tags cannot be selected with issue tags. Selecting a good condition tag will automatically clear any issue tags.'),
             Forms\Components\Textarea::make('condition_after')
               ->label('Condition Notes')
               ->placeholder('Enter any additional notes about the condition of the item after return')
