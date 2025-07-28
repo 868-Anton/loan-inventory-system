@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LoanResource\Pages;
 
 use App\Filament\Resources\LoanResource;
+use App\Helpers\ConditionTags;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
@@ -35,40 +36,7 @@ class ViewLoan extends ViewRecord
             ->label('Condition Tags')
             ->multiple()
             ->searchable()
-            ->options([
-              '✅ Good Condition' => [
-                'returned-no-issues' => 'Returned with no issues',
-                'fully-functional' => 'Fully functional',
-                'clean-and-intact' => 'Clean and intact',
-              ],
-              '🧩 Missing Parts' => [
-                'missing-accessories' => 'Missing accessories',
-                'missing-components' => 'Missing components',
-                'incomplete-set' => 'Incomplete set',
-                'missing-manual-or-packaging' => 'Missing manual or packaging',
-              ],
-              '🔨 Physical Damage' => [
-                'damaged-cracked' => 'Cracked',
-                'damaged-dented' => 'Dented',
-                'broken-screen' => 'Broken screen',
-                'structural-damage' => 'Structural damage',
-              ],
-              '🛠 Needs Repair' => [
-                'non-functional' => 'Non-functional',
-                'requires-maintenance' => 'Requires maintenance',
-                'battery-issues' => 'Battery issues',
-              ],
-              '🧼 Sanitation Issues' => [
-                'dirty-needs-cleaning' => 'Dirty, needs cleaning',
-                'contaminated' => 'Contaminated',
-                'odor-present' => 'Odor present',
-              ],
-              '⚠️ Other Conditions' => [
-                'label-or-seal-removed' => 'Label/seal removed',
-                'unauthorized-modification' => 'Unauthorized modification',
-                'returned-late' => 'Returned late',
-              ],
-            ])
+            ->options(ConditionTags::grouped())
             ->placeholder('Select item condition tags')
             ->required(false)
             ->afterStateUpdated(function ($state, $set) {
@@ -76,18 +44,10 @@ class ViewLoan extends ViewRecord
                 return;
               }
 
-              // Define good condition tags
-              $goodConditionTags = ['returned-no-issues', 'fully-functional', 'clean-and-intact'];
-
-              // Check if any good condition tags are selected
-              $hasGoodCondition = collect($state)->intersect($goodConditionTags)->isNotEmpty();
-
-              // Check if any issue tags are selected
-              $hasIssueTags = collect($state)->diff($goodConditionTags)->isNotEmpty();
-
-              if ($hasGoodCondition && $hasIssueTags) {
-                // If both good condition and issue tags are selected, keep only good condition tags
-                $filteredTags = collect($state)->intersect($goodConditionTags)->values()->toArray();
+              // Check if both good condition and issue tags are selected
+              if (ConditionTags::hasGoodTags($state) && ConditionTags::hasIssueTags($state)) {
+                // Keep only good condition tags
+                $filteredTags = ConditionTags::filterToGoodTags($state);
                 $set('condition_tags', $filteredTags);
 
                 // Show notification about the conflict
@@ -199,22 +159,7 @@ class ViewLoan extends ViewRecord
           ->schema([
             Infolists\Components\TextEntry::make('condition_tags')
               ->label('Condition Tags')
-              ->formatStateUsing(function ($state) {
-                if (!$state || empty($state)) {
-                  return 'No tags';
-                }
-
-                return collect($state)->map(function ($tag) {
-                  // Convert tag format to readable text
-                  $parts = explode('.', $tag);
-                  if (count($parts) === 2) {
-                    $category = ucwords(str_replace('_', ' ', $parts[0]));
-                    $condition = ucwords(str_replace('-', ' ', $parts[1]));
-                    return "{$category}: {$condition}";
-                  }
-                  return ucwords(str_replace(['-', '_'], ' ', $tag));
-                })->join(', ');
-              })
+              ->formatStateUsing(fn($state) => ConditionTags::formatForDisplay($state))
               ->visible(fn($record) => $record->status === 'returned'),
             Infolists\Components\TextEntry::make('return_notes')
               ->label('Return Notes')
@@ -228,7 +173,7 @@ class ViewLoan extends ViewRecord
   public function table(Tables\Table $table): Tables\Table
   {
     return $table
-      ->relationship('items')
+      ->relationship(fn() => $this->record->items())
       ->columns([
         Tables\Columns\TextColumn::make('name')
           ->label('Item Name')
@@ -274,40 +219,7 @@ class ViewLoan extends ViewRecord
               ->label('Condition Tags')
               ->multiple()
               ->searchable()
-              ->options([
-                '✅ Good Condition' => [
-                  'returned-no-issues' => 'Returned with no issues',
-                  'fully-functional' => 'Fully functional',
-                  'clean-and-intact' => 'Clean and intact',
-                ],
-                '🧩 Missing Parts' => [
-                  'missing-accessories' => 'Missing accessories',
-                  'missing-components' => 'Missing components',
-                  'incomplete-set' => 'Incomplete set',
-                  'missing-manual-or-packaging' => 'Missing manual or packaging',
-                ],
-                '🔨 Physical Damage' => [
-                  'damaged-cracked' => 'Cracked',
-                  'damaged-dented' => 'Dented',
-                  'broken-screen' => 'Broken screen',
-                  'structural-damage' => 'Structural damage',
-                ],
-                '🛠 Needs Repair' => [
-                  'non-functional' => 'Non-functional',
-                  'requires-maintenance' => 'Requires maintenance',
-                  'battery-issues' => 'Battery issues',
-                ],
-                '🧼 Sanitation Issues' => [
-                  'dirty-needs-cleaning' => 'Dirty, needs cleaning',
-                  'contaminated' => 'Contaminated',
-                  'odor-present' => 'Odor present',
-                ],
-                '⚠️ Other Conditions' => [
-                  'label-or-seal-removed' => 'Label/seal removed',
-                  'unauthorized-modification' => 'Unauthorized modification',
-                  'returned-late' => 'Returned late',
-                ],
-              ])
+              ->options(ConditionTags::grouped())
               ->placeholder('Select item condition tags')
               ->required(false)
               ->afterStateUpdated(function ($state, $set) {
@@ -315,18 +227,10 @@ class ViewLoan extends ViewRecord
                   return;
                 }
 
-                // Define good condition tags
-                $goodConditionTags = ['returned-no-issues', 'fully-functional', 'clean-and-intact'];
-
-                // Check if any good condition tags are selected
-                $hasGoodCondition = collect($state)->intersect($goodConditionTags)->isNotEmpty();
-
-                // Check if any issue tags are selected
-                $hasIssueTags = collect($state)->diff($goodConditionTags)->isNotEmpty();
-
-                if ($hasGoodCondition && $hasIssueTags) {
-                  // If both good condition and issue tags are selected, keep only good condition tags
-                  $filteredTags = collect($state)->intersect($goodConditionTags)->values()->toArray();
+                // Check if both good condition and issue tags are selected
+                if (ConditionTags::hasGoodTags($state) && ConditionTags::hasIssueTags($state)) {
+                  // Keep only good condition tags
+                  $filteredTags = ConditionTags::filterToGoodTags($state);
                   $set('condition_tags', $filteredTags);
 
                   // Show notification about the conflict

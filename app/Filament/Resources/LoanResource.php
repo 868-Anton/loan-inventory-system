@@ -388,6 +388,7 @@ class LoanResource extends Resource
             'create' => Pages\CreateLoan::route('/create'),
             'view' => Pages\ViewLoan::route('/{record}'),
             'edit' => Pages\EditLoan::route('/{record}/edit'),
+            'return' => Pages\ReturnLoan::route('/return'),
         ];
     }
 
