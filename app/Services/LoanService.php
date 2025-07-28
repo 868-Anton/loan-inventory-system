@@ -221,7 +221,7 @@ final class LoanService
       }
 
       // Get the requested quantity
-      $quantity = $itemData['deprecated_quantity'] ?? $itemData['quantity'] ?? 1;
+      $quantity = $itemData['quantity'] ?? 1;
 
       // Check if we have enough quantity
       $availableQuantity = $item->isAvailable() ? 1 : 0;
@@ -241,7 +241,7 @@ final class LoanService
 
       // Attach to the loan with pivot data
       $loan->items()->attach($item->id, [
-        'deprecated_quantity' => $quantity,
+        'quantity' => $quantity,
         'serial_numbers' => !empty($itemData['serial_numbers']) ? json_encode($itemData['serial_numbers']) : null,
         'condition_before' => $itemData['condition_before'] ?? null,
         'status' => 'loaned',

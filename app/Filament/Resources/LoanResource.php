@@ -170,28 +170,11 @@ class LoanResource extends Resource
                                                 }
                                             }),
 
-                                        Forms\Components\TextInput::make('deprecated_quantity')
+                                        Forms\Components\TextInput::make('quantity')
                                             ->label('Quantity')
                                             ->numeric()
                                             ->default(1)
                                             ->minValue(1)
-                                            ->maxValue(function (Forms\Get $get) {
-                                                $itemId = $get('item_id');
-                                                if (!$itemId) return 1;
-
-                                                $item = Item::find($itemId);
-                                                return $item ? $item->isAvailable() ? 1 : 0 : 1;
-                                            })
-                                            ->helperText(function (Forms\Get $get) {
-                                                $itemId = $get('item_id');
-                                                if (!$itemId) return null;
-
-                                                $item = Item::find($itemId);
-                                                if (!$item) return null;
-
-                                                $available = $item->isAvailable() ? 1 : 0;
-                                                return "Available: {$available}";
-                                            })
                                             ->required(),
 
                                         Forms\Components\TagsInput::make('serial_numbers')
@@ -207,7 +190,7 @@ class LoanResource extends Resource
                                     ->itemLabel(
                                         fn(array $state): ?string =>
                                         Item::find($state['item_id'])?->name
-                                            ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['deprecated_quantity'] ?? 1) . ')'
+                                            ? Item::find($state['item_id'])->name . ' (Qty: ' . ($state['quantity'] ?? 1) . ')'
                                             : 'New Item'
                                     )
                                     ->addActionLabel('Add Item')

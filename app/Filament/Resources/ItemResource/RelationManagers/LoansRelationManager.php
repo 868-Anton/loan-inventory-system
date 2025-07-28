@@ -80,8 +80,9 @@ class LoansRelationManager extends RelationManager
             'info' => 'returned',
             'warning' => 'canceled',
           ]),
-        Tables\Columns\TextColumn::make('pivot.deprecated_quantity')
+        Tables\Columns\TextColumn::make('pivot.quantity')
           ->label('Quantity')
+          ->numeric()
           ->sortable(),
         Tables\Columns\TextColumn::make('pivot.status')
           ->label('Item Status')

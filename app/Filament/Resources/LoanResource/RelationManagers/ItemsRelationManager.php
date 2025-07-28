@@ -50,8 +50,10 @@ class ItemsRelationManager extends RelationManager
           ->searchable(),
         Tables\Columns\TextColumn::make('category.name')
           ->sortable(),
-        Tables\Columns\TextColumn::make('pivot.deprecated_quantity')
-          ->label('Quantity'),
+        Tables\Columns\TextColumn::make('pivot.quantity')
+          ->label('Quantity')
+          ->numeric()
+          ->sortable(),
         Tables\Columns\TextColumn::make('pivot.status')
           ->label('Loan Status')
           ->badge()
@@ -77,7 +79,7 @@ class ItemsRelationManager extends RelationManager
             $action->getRecordSelect()
               ->label('Select Item')
               ->helperText('Only available items are shown'),
-            Forms\Components\TextInput::make('deprecated_quantity')
+            Forms\Components\TextInput::make('quantity')
               ->label('Quantity')
               ->numeric()
               ->default(1)

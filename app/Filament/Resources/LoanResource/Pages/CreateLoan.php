@@ -45,7 +45,7 @@ class CreateLoan extends CreateRecord
                         // Add the item to the form data
                         $data['items'][] = [
                             'item_id' => $item->id,
-                            'deprecated_quantity' => $requestItem['deprecated_quantity'] ?? $requestItem['quantity'] ?? 1,
+                            'quantity' => $requestItem['quantity'] ?? 1,
                         ];
                     } else {
                         Log::warning('Item not found for prefill', ['item_id' => $requestItem['item_id']]);
@@ -71,7 +71,7 @@ class CreateLoan extends CreateRecord
             // Ensure we create at least one row in the repeater
             $data['items'] = [[
                 'item_id' => null,
-                'deprecated_quantity' => 1,
+                'quantity' => 1,
             ]];
         }
 
