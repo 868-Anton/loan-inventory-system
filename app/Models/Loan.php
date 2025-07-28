@@ -126,7 +126,18 @@ class Loan extends Model
     public function items(): BelongsToMany
     {
         return $this->belongsToMany(Item::class, 'loan_items')
-            ->withPivot(['deprecated_quantity', 'serial_numbers', 'condition_before', 'condition_after', 'status'])
+            ->withPivot([
+                'quantity',
+                'serial_numbers',
+                'condition_before',
+                'condition_after',
+                'condition_tags',
+                'return_notes',
+                'status',
+                'returned_at',
+                'returned_by',
+                'condition_assessed_at'
+            ])
             ->withTimestamps();
     }
 
@@ -276,13 +287,15 @@ class Loan extends Model
     }
 
     /**
-     * Mark a single item in the loan as returned
+     * Mark a single item in the loan as returned with condition assessment
      * 
      * @param int $itemId The ID of the item to mark as returned
-     * @param string|null $condition Optional condition notes after return
+     * @param array|null $conditionTags Optional condition tags for the item
+     * @param string|null $returnNotes Optional return notes
+     * @param string|null $returnedBy Optional name of person who processed the return
      * @return bool Whether the item was successfully marked as returned
      */
-    public function returnItem(int $itemId, ?string $condition = null): bool
+    public function returnItem(int $itemId, ?array $conditionTags = null, ?string $returnNotes = null, ?string $returnedBy = null): bool
     {
         // Check if the item exists in this loan
         $loanItem = $this->items()->wherePivot('item_id', $itemId)->first();
@@ -291,12 +304,27 @@ class Loan extends Model
             return false;
         }
 
-        // Set the pivot data
-        $this->items()->updateExistingPivot($itemId, [
+        // Set the pivot data with condition tracking
+        $pivotData = [
             'status' => 'returned',
             'returned_at' => now(),
-            'condition_after' => $condition,
-        ]);
+        ];
+
+        // Add condition tracking if provided
+        if ($conditionTags !== null) {
+            $pivotData['condition_tags'] = $conditionTags;
+            $pivotData['condition_assessed_at'] = now();
+        }
+
+        if ($returnNotes !== null) {
+            $pivotData['return_notes'] = $returnNotes;
+        }
+
+        if ($returnedBy !== null) {
+            $pivotData['returned_by'] = $returnedBy;
+        }
+
+        $this->items()->updateExistingPivot($itemId, $pivotData);
 
         // Check if this item is in any other active loans
         $stillOnLoan = $loanItem->loans()

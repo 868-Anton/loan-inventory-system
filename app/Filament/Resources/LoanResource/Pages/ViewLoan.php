@@ -194,6 +194,18 @@ class ViewLoan extends ViewRecord
           ->label('Condition Before')
           ->limit(50)
           ->tooltip(fn(string $state): string => $state),
+        Tables\Columns\TextColumn::make('pivot.condition_tags')
+          ->label('Condition Tags')
+          ->formatStateUsing(fn($state) => ConditionTags::formatForDisplay($state))
+          ->visible(fn($record) => $record->pivot->condition_tags && !empty($record->pivot->condition_tags)),
+        Tables\Columns\TextColumn::make('pivot.return_notes')
+          ->label('Return Notes')
+          ->limit(50)
+          ->tooltip(fn(string $state): string => $state)
+          ->visible(fn($record) => filled($record->pivot->return_notes)),
+        Tables\Columns\TextColumn::make('pivot.returned_by')
+          ->label('Returned By')
+          ->visible(fn($record) => filled($record->pivot->returned_by)),
         Tables\Columns\TextColumn::make('pivot.status')
           ->label('Status')
           ->badge()
@@ -208,6 +220,11 @@ class ViewLoan extends ViewRecord
           ->label('Returned At')
           ->dateTime()
           ->sortable(),
+        Tables\Columns\TextColumn::make('pivot.condition_assessed_at')
+          ->label('Assessed At')
+          ->dateTime()
+          ->sortable()
+          ->visible(fn($record) => $record->pivot->condition_assessed_at),
       ])
       ->actions([
         Tables\Actions\Action::make('returnItem')
@@ -251,12 +268,20 @@ class ViewLoan extends ViewRecord
           ->modalHeading('Return Item')
           ->modalDescription('Are you sure you want to mark this item as returned?')
           ->action(function (array $data, $record): void {
-            $this->record->returnItem($record->id, $data['condition_after'] ?? null);
+            // Get current user name for returned_by field
+            $returnedBy = \Filament\Facades\Filament::auth()->user()?->name ?? 'System';
+
+            $this->record->returnItem(
+              $record->id,
+              $data['condition_tags'] ?? null,
+              $data['condition_after'] ?? null,
+              $returnedBy
+            );
 
             \Filament\Notifications\Notification::make()
               ->success()
               ->title('Item Returned')
-              ->body('The item has been marked as returned.')
+              ->body('The item has been marked as returned with condition assessment.')
               ->send();
 
             $this->refresh();

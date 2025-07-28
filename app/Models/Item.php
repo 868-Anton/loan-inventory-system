@@ -49,7 +49,18 @@ class Item extends Model
     public function loans(): BelongsToMany
     {
         return $this->belongsToMany(Loan::class, 'loan_items')
-            ->withPivot(['serial_numbers', 'condition_before', 'condition_after', 'status'])
+            ->withPivot([
+                'quantity',
+                'serial_numbers',
+                'condition_before',
+                'condition_after',
+                'condition_tags',
+                'return_notes',
+                'status',
+                'returned_at',
+                'returned_by',
+                'condition_assessed_at'
+            ])
             ->withTimestamps();
     }
 

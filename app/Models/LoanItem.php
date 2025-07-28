@@ -17,13 +17,19 @@ class LoanItem extends Model
         'serial_numbers',
         'condition_before',
         'condition_after',
+        'condition_tags',
+        'return_notes',
         'status',
         'returned_at',
+        'returned_by',
+        'condition_assessed_at',
     ];
 
     protected $casts = [
         'serial_numbers' => 'array',
+        'condition_tags' => 'array',
         'returned_at' => 'datetime',
+        'condition_assessed_at' => 'datetime',
     ];
 
     /**
@@ -40,5 +46,35 @@ class LoanItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    /**
+     * Check if the loan item has been returned
+     */
+    public function isReturned(): bool
+    {
+        return !is_null($this->returned_at);
+    }
+
+    /**
+     * Check if the loan item has condition assessment
+     */
+    public function hasConditionAssessment(): bool
+    {
+        return !is_null($this->condition_assessed_at);
+    }
+
+    /**
+     * Get the condition status as a readable string
+     */
+    public function getConditionStatusAttribute(): string
+    {
+        if ($this->isReturned()) {
+            if ($this->hasConditionAssessment()) {
+                return 'Assessed';
+            }
+            return 'Returned';
+        }
+        return 'Loaned';
     }
 }
