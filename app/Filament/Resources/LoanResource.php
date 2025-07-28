@@ -246,7 +246,8 @@ class LoanResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('loan_number')
                     ->searchable()
-                    ->url(fn(Loan $record): string => route('filament.admin.resources.loans.view', $record)),
+                    ->url(fn(Loan $record): string => route('filament.admin.resources.loans.view', $record))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('borrower')
                     ->label('Borrower')
                     ->getStateUsing(function ($record): string {
@@ -311,7 +312,7 @@ class LoanResource extends Resource
                 Tables\Columns\IconColumn::make('is_guest')
                     ->label('Guest')
                     ->boolean()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -348,22 +349,206 @@ class LoanResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->form([
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Return Notes')
-                            ->placeholder('Condition of returned items, missing parts, damage, etc.')
+                        Forms\Components\Section::make('Select Items to Return')
+                            ->schema([
+                                Forms\Components\CheckboxList::make('items_to_return')
+                                    ->label('Items to Return')
+                                    ->options(function ($record) {
+                                        return $record->items->mapWithKeys(function ($item) {
+                                            $label = $item->name;
+                                            if ($item->pivot->serial_numbers && !empty($item->pivot->serial_numbers)) {
+                                                $serialNumbers = is_array($item->pivot->serial_numbers)
+                                                    ? $item->pivot->serial_numbers
+                                                    : json_decode($item->pivot->serial_numbers, true);
+
+                                                if (is_array($serialNumbers) && !empty($serialNumbers)) {
+                                                    $label .= ' (SN: ' . implode(', ', $serialNumbers) . ')';
+                                                }
+                                            }
+                                            return [$item->id => $label];
+                                        })->toArray();
+                                    })
+                                    ->default(function ($record) {
+                                        return $record->items->pluck('id')->toArray();
+                                    })
+                                    ->columns(1)
+                                    ->required()
+                                    ->helperText('Select which items you want to return. All items are selected by default.'),
+                            ]),
+
+                        Forms\Components\Section::make('Return Conditions')
+                            ->schema([
+                                Forms\Components\Radio::make('condition_mode')
+                                    ->label('Condition Setting Mode')
+                                    ->options([
+                                        'bulk' => 'Set same condition for all selected items',
+                                        'individual' => 'Set condition for each item individually',
+                                    ])
+                                    ->default('bulk')
+                                    ->required()
+                                    ->reactive(),
+
+                                // Bulk condition settings (shown when bulk mode is selected)
+                                Forms\Components\Group::make([
+                                    Forms\Components\Select::make('bulk_condition_tags')
+                                        ->label('Condition Tags (All Items)')
+                                        ->multiple()
+                                        ->searchable()
+                                        ->options(\App\Helpers\ConditionTags::grouped())
+                                        ->placeholder('Select condition tags for all items')
+                                        ->required(false)
+                                        ->afterStateUpdated(function ($state, $set) {
+                                            if (!$state || empty($state)) {
+                                                return;
+                                            }
+
+                                            if (\App\Helpers\ConditionTags::hasGoodTags($state) && \App\Helpers\ConditionTags::hasIssueTags($state)) {
+                                                $filteredTags = \App\Helpers\ConditionTags::filterToGoodTags($state);
+                                                $set('bulk_condition_tags', $filteredTags);
+
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Tag Conflict Resolved')
+                                                    ->body('Good condition tags cannot be selected with issue tags. Only good condition tags have been kept.')
+                                                    ->send();
+                                            }
+                                        })
+                                        ->helperText('Note: Good condition tags cannot be selected with issue tags.')
+                                        ->visible(fn(Forms\Get $get) => $get('condition_mode') === 'bulk'),
+
+                                    Forms\Components\Textarea::make('bulk_return_notes')
+                                        ->label('Return Notes (All Items)')
+                                        ->placeholder('Add notes that apply to all selected items')
+                                        ->rows(3)
+                                        ->visible(fn(Forms\Get $get) => $get('condition_mode') === 'bulk'),
+                                ]),
+
+                                // Individual condition settings (shown when individual mode is selected)
+                                Forms\Components\Repeater::make('individual_conditions')
+                                    ->label('Individual Item Conditions')
+                                    ->schema([
+                                        Forms\Components\Hidden::make('item_id'),
+                                        Forms\Components\TextInput::make('item_name')
+                                            ->label('Item')
+                                            ->disabled()
+                                            ->dehydrated(false),
+                                        Forms\Components\Select::make('condition_tags')
+                                            ->label('Condition Tags')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->options(\App\Helpers\ConditionTags::grouped())
+                                            ->placeholder('Select condition tags')
+                                            ->required(false)
+                                            ->afterStateUpdated(function ($state, $set) {
+                                                if (!$state || empty($state)) {
+                                                    return;
+                                                }
+
+                                                if (\App\Helpers\ConditionTags::hasGoodTags($state) && \App\Helpers\ConditionTags::hasIssueTags($state)) {
+                                                    $filteredTags = \App\Helpers\ConditionTags::filterToGoodTags($state);
+                                                    $set('condition_tags', $filteredTags);
+
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->warning()
+                                                        ->title('Tag Conflict Resolved')
+                                                        ->body('Good condition tags cannot be selected with issue tags. Only good condition tags have been kept.')
+                                                        ->send();
+                                                }
+                                            }),
+                                        Forms\Components\Textarea::make('return_notes')
+                                            ->label('Return Notes')
+                                            ->placeholder('Add notes for this specific item')
+                                            ->rows(2),
+                                    ])
+                                    ->columns(1)
+                                    ->itemLabel(fn(array $state): ?string => $state['item_name'] ?? null)
+                                    ->visible(fn(Forms\Get $get) => $get('condition_mode') === 'individual')
+                                    ->mutateRelationshipDataBeforeFillUsing(function (array $data, $record) {
+                                        // Pre-populate with selected items
+                                        $selectedItems = $record->items;
+                                        return $selectedItems->map(function ($item) {
+                                            $serialNumbersText = '';
+                                            if ($item->pivot->serial_numbers && !empty($item->pivot->serial_numbers)) {
+                                                $serialNumbers = is_array($item->pivot->serial_numbers)
+                                                    ? $item->pivot->serial_numbers
+                                                    : json_decode($item->pivot->serial_numbers, true);
+
+                                                if (is_array($serialNumbers) && !empty($serialNumbers)) {
+                                                    $serialNumbersText = ' (SN: ' . implode(', ', $serialNumbers) . ')';
+                                                }
+                                            }
+
+                                            return [
+                                                'item_id' => $item->id,
+                                                'item_name' => $item->name . $serialNumbersText,
+                                                'condition_tags' => [],
+                                                'return_notes' => '',
+                                            ];
+                                        })->toArray();
+                                    }),
+                            ]),
                     ])
                     ->action(function (Loan $record, array $data): void {
-                        $record->markAsReturned($data['notes'] ?? null);
+                        try {
+                            $returnedBy = \Filament\Facades\Filament::auth()->user()?->name ?? 'System';
+                            $selectedItemIds = $data['items_to_return'] ?? [];
+                            $conditionMode = $data['condition_mode'] ?? 'bulk';
 
-                        \Filament\Notifications\Notification::make()
-                            ->success()
-                            ->title('Loan Returned')
-                            ->body('All items have been marked as returned.')
-                            ->send();
+                            // Update loan status if all items are being returned
+                            $allItemsSelected = count($selectedItemIds) === $record->items->count();
+
+                            if ($allItemsSelected) {
+                                $record->update([
+                                    'status' => 'returned',
+                                    'return_date' => now(),
+                                ]);
+                            }
+
+                            // Process each selected item
+                            foreach ($selectedItemIds as $itemId) {
+                                $item = $record->items->firstWhere('id', $itemId);
+                                if (!$item) continue;
+
+                                if ($conditionMode === 'bulk') {
+                                    // Use bulk conditions for all items
+                                    $record->returnItem(
+                                        $itemId,
+                                        $data['bulk_condition_tags'] ?? null,
+                                        $data['bulk_return_notes'] ?? null,
+                                        $returnedBy
+                                    );
+                                } else {
+                                    // Use individual conditions
+                                    $individualCondition = collect($data['individual_conditions'] ?? [])
+                                        ->firstWhere('item_id', $itemId);
+
+                                    if ($individualCondition) {
+                                        $record->returnItem(
+                                            $itemId,
+                                            $individualCondition['condition_tags'] ?? null,
+                                            $individualCondition['return_notes'] ?? null,
+                                            $returnedBy
+                                        );
+                                    }
+                                }
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Items Returned')
+                                ->body(count($selectedItemIds) . ' item(s) have been marked as returned.')
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Return Failed')
+                                ->body('Error: ' . $e->getMessage())
+                                ->send();
+                        }
                     })
                     ->requiresConfirmation()
-                    ->modalHeading('Return Loan')
-                    ->modalDescription('Mark this loan as returned? This will update the status of all borrowed items.')
+                    ->modalHeading('Return Items')
+                    ->modalDescription('Select items to return and set their conditions.')
                     ->visible(fn(Loan $record): bool => $record->status !== 'returned' && $record->status !== 'canceled'),
                 Tables\Actions\EditAction::make(),
             ])

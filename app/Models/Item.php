@@ -89,8 +89,22 @@ class Item extends Model
     {
         return $this->loans()
             ->whereIn('loans.status', ['active', 'overdue', 'pending'])
-            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
+            ->where('loan_items.status', 'loaned')
             ->exists();
+    }
+
+    /**
+     * Get the current active loan for this item.
+     *
+     * @return Loan|null
+     */
+    public function getCurrentLoan()
+    {
+        return $this->loans()
+            ->whereIn('loans.status', ['active', 'pending', 'overdue'])
+            ->where('loan_items.status', 'loaned')
+            ->latest('loans.created_at')
+            ->first();
     }
 
     /**

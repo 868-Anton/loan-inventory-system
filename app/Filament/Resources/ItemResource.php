@@ -186,6 +186,58 @@ class ItemResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('view_loans')
+                    ->label('View Loan')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->url(function (Item $record) {
+                        // Get the current active loan for this item
+                        $currentLoan = $record->getCurrentLoan();
+
+                        if ($currentLoan) {
+                            return '/admin/loans/' . $currentLoan->id;
+                        }
+
+                        // If no current loan found, try to find any loan for this item
+                        $anyLoan = $record->loans()
+                            ->latest('loans.created_at')
+                            ->first();
+
+                        return $anyLoan ? '/admin/loans/' . $anyLoan->id : '#';
+                    })
+                    ->visible(function (Item $record) {
+                        // Show for items that are borrowed, pending, or overdue (either by status or by active loans)
+                        return in_array($record->status, ['borrowed']) || $record->isCurrentlyLoaned();
+                    })
+                    ->openUrlInNewTab(),
+                Tables\Actions\Action::make('view_all_loans')
+                    ->label('View All Loans')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('gray')
+                    ->modalHeading(fn(Item $record) => "All Loans for {$record->name}")
+                    ->modalContent(function (Item $record) {
+                        $loans = $record->loans()->with(['borrower', 'department'])->orderBy('created_at', 'desc')->get();
+
+                        if ($loans->isEmpty()) {
+                            return view('components.empty-state', [
+                                'title' => 'No Loans Found',
+                                'description' => 'This item has not been loaned out yet.',
+                                'icon' => 'heroicon-o-clipboard-document-list'
+                            ]);
+                        }
+
+                        return view('components.item-loans-modal', [
+                            'item' => $record,
+                            'loans' => $loans
+                        ]);
+                    })
+                    ->modalWidth('4xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->visible(function (Item $record) {
+                        // Show for any item with loan history
+                        return $record->loans()->exists();
+                    }),
                 Tables\Actions\Action::make('loan')
                     ->label('Create Loan')
                     ->icon('heroicon-o-paper-clip')

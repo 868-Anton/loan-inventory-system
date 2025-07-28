@@ -28,3 +28,7 @@ Route::get('/loan-item/{item}', function (App\Models\Item $item) {
             '&prefill[items][0][quantity]=1'
     );
 })->name('loan.item');
+
+Route::post('/admin/loans/{loan}/return-item', [App\Http\Controllers\ItemsController::class, 'returnItem'])
+    ->name('loans.return-item')
+    ->middleware(['auth']);
