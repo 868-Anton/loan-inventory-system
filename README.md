@@ -1,61 +1,189 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Loan Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive Laravel-based loan management system designed for organizations to efficiently track equipment loans, manage inventory, and handle both internal staff and guest borrowers.
 
-## About Laravel
+## Project Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This is a **production-ready loan management system** that provides complete lifecycle management for equipment loans - from item registration to return processing. The system features a modern admin interface built with Filament and a public-facing catalog for easy item browsing.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Core Technology Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Backend**: Laravel 12 (PHP 8.2+)
+- **Admin Panel**: Filament 3.0 (modern Laravel admin interface)
+- **Frontend**: Vite + TailwindCSS 4.0 with custom views
+- **Database**: MySQL (with SQLite support)
+- **PDF Generation**: DomPDF for vouchers/reports
+- **Authentication**: Laravel Breeze
 
-## Learning Laravel
+## Key Features & Functionality
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Inventory Management
+- **Items**: Complete item tracking with serial numbers, asset tags, purchase info
+- **Categories**: Hierarchical category system with parent/child relationships
+- **Custom Attributes**: Flexible metadata for items
+- **Status Tracking**: Item availability and condition monitoring
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 2. Loan System
+- **Dual Borrower Types**: Supports both registered users and guest borrowers
+- **Polymorphic Relations**: Flexible borrower system (User or GuestBorrower)
+- **Individual Item Tracking**: Each item instance tracked separately
+- **Automatic Due Dates**: Defaults to 1 month from loan date
+- **Digital Signatures**: Loan documentation with signatures
+- **PDF Vouchers**: Automatically generated loan vouchers
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 3. User Management
+- **Department Integration**: Users linked to departments
+- **Role-based Access**: Different user types and permissions
+- **Soft Deletes**: Maintains user history
+- **Guest Borrowers**: Separate entity for non-registered borrowers
 
-## Laravel Sponsors
+### 4. Admin Interface (Filament)
+- **Complete CRUD**: For all entities (Users, Items, Categories, Loans, etc.)
+- **Rich Forms**: Advanced form components with validation
+- **Data Tables**: Sortable, filterable tables with bulk actions
+- **Relationship Management**: Easy handling of related data
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 5. Public Interface
+- **Item Catalog**: Public browsing of available items
+- **Category Navigation**: Browse items by category
+- **Item Details**: Modal views for item information
+- **Quick Loan Creation**: Direct links from items to loan creation
 
-### Premium Partners
+## Database Schema
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+The system includes these main entities:
+- **Users** (with department associations)
+- **Items** (with categories, serial numbers, status)
+- **Categories** (hierarchical structure)
+- **Loans** (polymorphic borrower relations)
+- **LoanItems** (individual item tracking in loans)
+- **GuestBorrowers** (for non-registered users)
+- **Departments** (organizational structure)
+
+## Advanced Features
+
+- **Soft Deletes**: Maintains data integrity across all models
+- **Polymorphic Relationships**: Flexible borrower system
+- **Individual Item Tracking**: Each item instance managed separately
+- **Custom Fields**: Extensible metadata system
+- **Automated Workflows**: Due date calculation, voucher generation
+- **Condition Tracking**: Item condition notes and return status
+- **Sort Ordering**: Custom ordering for categories, items, users
+
+## Installation & Setup
+
+### Prerequisites
+- PHP 8.2 or higher
+- Composer
+- Node.js & npm
+- MySQL or SQLite
+
+### Installation Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd loan-management-system
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database setup**
+   ```bash
+   # Create database (MySQL)
+   php database/create_db.php
+   
+   # Run migrations
+   php artisan migrate
+   
+   # Seed database (optional)
+   php artisan db:seed
+   ```
+
+5. **Build assets**
+   ```bash
+   npm run build
+   # or for development
+   npm run dev
+   ```
+
+6. **Create admin user**
+   ```bash
+   php artisan make:filament-user
+   ```
+
+## Development
+
+### Running the application
+```bash
+# Start all services (server, queue, logs, vite)
+composer run dev
+
+# Or individually:
+php artisan serve
+php artisan queue:work
+npm run dev
+```
+
+### Testing
+```bash
+composer run test
+```
+
+## Usage
+
+### Admin Panel
+Access the admin panel at `/admin` to manage:
+- Items and categories
+- Users and departments
+- Loans and returns
+- Guest borrowers
+- System settings
+
+### Public Interface
+- Browse items at `/items`
+- View categories at `/categories/{category}/items`
+- Create loans directly from item pages
+
+## File Structure
+
+```
+app/
+├── Filament/           # Admin panel configuration
+├── Http/               # Controllers and middleware
+├── Models/             # Eloquent models
+├── Services/           # Business logic services
+└── ...
+
+resources/
+├── views/              # Blade templates
+├── css/                # Stylesheets
+└── js/                 # JavaScript assets
+
+database/
+├── migrations/         # Database migrations
+├── seeders/           # Database seeders
+└── factories/         # Model factories
+```
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+This project follows Laravel coding standards and best practices. Please ensure:
+- Proper PHPDoc documentation
+- Database migrations for schema changes
+- Tests for new functionality
+- Consistent code formatting
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
