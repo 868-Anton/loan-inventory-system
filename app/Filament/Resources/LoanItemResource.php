@@ -98,15 +98,15 @@ class LoanItemResource extends Resource
                 Tables\Columns\TextColumn::make('condition_tags')
                     ->label('Condition Tags')
                     ->formatStateUsing(fn($state) => ConditionTags::formatForDisplay($state))
-                    ->visible(fn($record) => $record->condition_tags && !empty($record->condition_tags)),
+                    ->visible(fn($record) => $record && $record->condition_tags && !empty($record->condition_tags)),
                 Tables\Columns\TextColumn::make('return_notes')
                     ->label('Return Notes')
                     ->limit(50)
                     ->tooltip(fn(string $state): string => $state)
-                    ->visible(fn($record) => filled($record->return_notes)),
+                    ->visible(fn($record) => $record && filled($record->return_notes)),
                 Tables\Columns\TextColumn::make('returned_by')
                     ->label('Returned By')
-                    ->visible(fn($record) => filled($record->returned_by)),
+                    ->visible(fn($record) => $record && filled($record->returned_by)),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn(string $state): string => match (strtolower($state)) {
@@ -122,7 +122,7 @@ class LoanItemResource extends Resource
                 Tables\Columns\TextColumn::make('condition_assessed_at')
                     ->dateTime()
                     ->sortable()
-                    ->visible(fn($record) => $record->condition_assessed_at),
+                    ->visible(fn($record) => $record && $record->condition_assessed_at),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
