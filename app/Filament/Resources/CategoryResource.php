@@ -67,21 +67,17 @@ class CategoryResource extends Resource
                     ->badge()
                     ->color('success')
                     ->tooltip('Total count of all items in this category'),
-                Tables\Columns\TextColumn::make('total_available')
+                Tables\Columns\TextColumn::make('available_items_count')
                     ->label('Available Items')
-                    ->state(function (Category $record): int {
-                        return $record->totalAvailable();
-                    })
+                    ->sortable()
                     ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'available']))
                     ->badge()
                     ->color('warning') // Orange
                     ->alignCenter()
                     ->tooltip('Total count of available items in this category'),
-                Tables\Columns\TextColumn::make('total_borrowed')
+                Tables\Columns\TextColumn::make('borrowed_items_count')
                     ->label('Borrowed Items')
-                    ->state(function (Category $record): int {
-                        return $record->totalBorrowed();
-                    })
+                    ->sortable()
                     ->url(fn(Category $record): string => route('categories.items', ['category' => $record, 'filter' => 'borrowed']))
                     ->badge()
                     ->color('danger')
@@ -117,7 +113,6 @@ class CategoryResource extends Resource
             ])
             // Add row click behavior
             ->recordUrl(fn(Category $record): string => route('categories.items', $record))
-            ->defaultSort('sort_order')
             ->reorderable('sort_order');
     }
 
@@ -126,6 +121,29 @@ class CategoryResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withCount([
+                'items as borrowed_items_count' => fn($query) => $query->where(function ($subQuery) {
+                    $subQuery->where('status', 'borrowed')
+                        ->orWhereHas('loans', function ($loanQuery) {
+                            $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                                ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+                        });
+                }),
+                'items as available_items_count' => fn($query) => $query->where(function ($subQuery) {
+                    $subQuery->whereRaw('LOWER(status) = ?', ['available'])
+                        ->whereDoesntHave('loans', function ($loanQuery) {
+                            $loanQuery->whereIn('loans.status', ['active', 'overdue', 'pending'])
+                                ->whereRaw('LOWER(loan_items.status) = ?', ['loaned']);
+                        });
+                }),
+            ])
+            ->orderByDesc('borrowed_items_count')
+            ->orderByDesc('available_items_count');
     }
 
     public static function getPages(): array
