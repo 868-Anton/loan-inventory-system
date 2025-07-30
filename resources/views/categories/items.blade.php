@@ -36,6 +36,11 @@
                 @endif
             </h1>
             <div class="flex gap-2">
+                <a href="{{ route('filament.admin.resources.items.create', ['category_id' => $category->id]) }}" 
+                   class="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded flex items-center gap-2">
+                    <span>➕</span>
+                    Add Item to Category
+                </a>
                 @if($filter === 'borrowed')
                     <a href="{{ route('categories.items', $category) }}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded">
                         Show All Items

@@ -41,6 +41,7 @@ class ItemResource extends Resource
                                     ->relationship('category', 'name')
                                     ->searchable()
                                     ->preload()
+                                    ->default(fn() => request()->query('category_id'))
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('name')
                                             ->required()
