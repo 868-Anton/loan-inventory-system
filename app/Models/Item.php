@@ -89,7 +89,7 @@ class Item extends Model
     {
         return $this->loans()
             ->whereIn('loans.status', ['active', 'overdue', 'pending'])
-            ->where('loan_items.status', 'loaned')
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
             ->exists();
     }
 
@@ -102,7 +102,7 @@ class Item extends Model
     {
         return $this->loans()
             ->whereIn('loans.status', ['active', 'pending', 'overdue'])
-            ->where('loan_items.status', 'loaned')
+            ->whereRaw('LOWER(loan_items.status) = ?', ['loaned'])
             ->latest('loans.created_at')
             ->first();
     }
