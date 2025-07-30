@@ -369,7 +369,34 @@ class LoanResource extends Resource
                                     ])
                                     ->default('bulk')
                                     ->required()
-                                    ->reactive(),
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, $record) {
+                                        if ($state === 'individual') {
+                                            // Pre-populate individual conditions when individual mode is selected
+                                            $selectedItems = $record->items;
+                                            $defaultItems = $selectedItems->map(function ($item) {
+                                                $serialNumbersText = '';
+                                                if ($item->pivot->serial_numbers && !empty($item->pivot->serial_numbers)) {
+                                                    $serialNumbers = is_array($item->pivot->serial_numbers)
+                                                        ? $item->pivot->serial_numbers
+                                                        : json_decode($item->pivot->serial_numbers, true);
+
+                                                    if (is_array($serialNumbers) && !empty($serialNumbers)) {
+                                                        $serialNumbersText = ' (SN: ' . implode(', ', $serialNumbers) . ')';
+                                                    }
+                                                }
+
+                                                return [
+                                                    'item_id' => $item->id,
+                                                    'item_name' => $item->name . $serialNumbersText,
+                                                    'condition_tags' => [],
+                                                    'return_notes' => '',
+                                                ];
+                                            })->toArray();
+
+                                            $set('individual_conditions', $defaultItems);
+                                        }
+                                    }),
 
                                 // Bulk condition settings (shown when bulk mode is selected)
                                 Forms\Components\Group::make([
@@ -446,29 +473,7 @@ class LoanResource extends Resource
                                     ->columns(1)
                                     ->itemLabel(fn(array $state): ?string => $state['item_name'] ?? null)
                                     ->visible(fn(Forms\Get $get) => $get('condition_mode') === 'individual')
-                                    ->mutateRelationshipDataBeforeFillUsing(function (array $data, $record) {
-                                        // Pre-populate with selected items
-                                        $selectedItems = $record->items;
-                                        return $selectedItems->map(function ($item) {
-                                            $serialNumbersText = '';
-                                            if ($item->pivot->serial_numbers && !empty($item->pivot->serial_numbers)) {
-                                                $serialNumbers = is_array($item->pivot->serial_numbers)
-                                                    ? $item->pivot->serial_numbers
-                                                    : json_decode($item->pivot->serial_numbers, true);
-
-                                                if (is_array($serialNumbers) && !empty($serialNumbers)) {
-                                                    $serialNumbersText = ' (SN: ' . implode(', ', $serialNumbers) . ')';
-                                                }
-                                            }
-
-                                            return [
-                                                'item_id' => $item->id,
-                                                'item_name' => $item->name . $serialNumbersText,
-                                                'condition_tags' => [],
-                                                'return_notes' => '',
-                                            ];
-                                        })->toArray();
-                                    }),
+                                    ->defaultItems(0),
                             ]),
                     ])
                     ->action(function (Loan $record, array $data): void {
